@@ -1,0 +1,17 @@
+node_modules
+.npm-cache
+.next
+out
+dist
+build
+.turbo
+.vercel
+.env
+.env.local
+.env.*.local
+coverage
+*.tsbuildinfo
+dev-server*.log
+prisma/generated
+apps/web/public/sw.js
+apps/web/public/workbox-*.js

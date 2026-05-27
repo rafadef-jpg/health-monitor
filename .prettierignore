@@ -1,0 +1,12 @@
+node_modules
+.next
+dist
+build
+coverage
+package-lock.json
+*.tsbuildinfo
+dev-server*.log
+apps/web/next-env.d.ts
+.npm-cache
+apps/web/public/sw.js
+apps/web/public/workbox-*.js

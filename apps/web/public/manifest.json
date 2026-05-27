@@ -1,0 +1,17 @@
+{
+  "name": "Defendi Biometric Dashboard",
+  "short_name": "Defendi",
+  "description": "Dashboard profissional com tema biometrico dark.",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#05080a",
+  "theme_color": "#16f2b3",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
