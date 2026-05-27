@@ -8,10 +8,398 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-model UserProfile {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+enum MetricSource {
+  OURA
+  GARMIN
+  MANUAL
+  AI
+  SYSTEM
+}
+
+enum AlertSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+enum AlertStatus {
+  OPEN
+  ACKNOWLEDGED
+  RESOLVED
+  DISMISSED
+}
+
+enum ReportStatus {
+  DRAFT
+  READY
+  ARCHIVED
+}
+
+enum InsightStatus {
+  PENDING
+  REVIEWED
+  APPLIED
+  DISMISSED
+}
+
+model User {
+  id             String    @id @db.Uuid
+  email          String    @unique
+  name           String?
+  timezone       String    @default("America/Sao_Paulo")
+  ouraExternalId String?   @unique @map("oura_external_id")
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt      DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  physiologyMetrics      PhysiologyMetric[]
+  sleepSessions          SleepSession[]
+  readinessScores        ReadinessScore[]
+  stressMetrics          StressMetric[]
+  activityMetrics        ActivityMetric[]
+  heartRateMetrics       HeartRateMetric[]
+  hrvMetrics             HrvMetric[]
+  bodyTemperatureMetrics BodyTemperatureMetric[]
+  recoveryMetrics        RecoveryMetric[]
+  ouraRaw                OuraRaw[]
+  reports                Report[]
+  alerts                 Alert[]
+  aiInsights             AiInsight[]
+
+  @@index([email])
+  @@map("users")
+}
+
+model PhysiologyMetric {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String       @map("user_id") @db.Uuid
+  metricDate     DateTime     @map("metric_date") @db.Date
+  recordedAt     DateTime     @map("recorded_at") @db.Timestamptz(6)
+  source         MetricSource @default(OURA)
+  sourceRecordId String?      @map("source_record_id")
+  summary        Json?
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user                   User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sleepSession           SleepSession?
+  readinessScore         ReadinessScore?
+  stressMetric           StressMetric?
+  activityMetric         ActivityMetric?
+  heartRateMetric        HeartRateMetric?
+  hrvMetric              HrvMetric?
+  bodyTemperatureMetric  BodyTemperatureMetric?
+  recoveryMetric         RecoveryMetric?
+
+  @@unique([userId, source, recordedAt])
+  @@unique([userId, source, sourceRecordId])
+  @@index([userId, metricDate])
+  @@index([userId, recordedAt])
+  @@map("physiology_metrics")
+}
+
+model SleepSession {
+  id                    String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId                String       @map("user_id") @db.Uuid
+  physiologyMetricId    String?      @unique @map("physiology_metric_id") @db.Uuid
+  metricDate            DateTime     @map("metric_date") @db.Date
+  source                MetricSource @default(OURA)
+  sourceRecordId        String?      @map("source_record_id")
+  bedtimeStart          DateTime     @map("bedtime_start") @db.Timestamptz(6)
+  bedtimeEnd            DateTime     @map("bedtime_end") @db.Timestamptz(6)
+  totalSleepSeconds     Int?         @map("total_sleep_seconds")
+  timeInBedSeconds      Int?         @map("time_in_bed_seconds")
+  awakeSeconds          Int?         @map("awake_seconds")
+  remSleepSeconds       Int?         @map("rem_sleep_seconds")
+  deepSleepSeconds      Int?         @map("deep_sleep_seconds")
+  lightSleepSeconds     Int?         @map("light_sleep_seconds")
+  efficiency            Float?
+  latencySeconds        Int?         @map("latency_seconds")
+  restlessPeriods       Int?         @map("restless_periods")
+  sleepScore            Int?         @map("sleep_score")
+  raw                   Json?
+  createdAt             DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  physiologyMetric PhysiologyMetric?   @relation(fields: [physiologyMetricId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, source, sourceRecordId])
+  @@index([userId, metricDate])
+  @@index([userId, bedtimeStart])
+  @@map("sleep_sessions")
+}
+
+model ReadinessScore {
+  id                    String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId                String       @map("user_id") @db.Uuid
+  physiologyMetricId    String?      @unique @map("physiology_metric_id") @db.Uuid
+  metricDate            DateTime     @map("metric_date") @db.Date
+  source                MetricSource @default(OURA)
+  sourceRecordId        String?      @map("source_record_id")
+  score                 Int?
+  temperatureDeviation  Float?       @map("temperature_deviation")
+  restingHeartRate      Int?         @map("resting_heart_rate")
+  hrvBalance            Int?         @map("hrv_balance")
+  sleepBalance          Int?         @map("sleep_balance")
+  previousDayActivity   Int?         @map("previous_day_activity")
+  activityBalance       Int?         @map("activity_balance")
+  recoveryIndex         Int?         @map("recovery_index")
+  raw                   Json?
+  createdAt             DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  physiologyMetric PhysiologyMetric?   @relation(fields: [physiologyMetricId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, source, metricDate])
+  @@unique([userId, source, sourceRecordId])
+  @@index([userId, metricDate])
+  @@map("readiness_scores")
+}
+
+model StressMetric {
+  id                    String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId                String       @map("user_id") @db.Uuid
+  physiologyMetricId    String?      @unique @map("physiology_metric_id") @db.Uuid
+  metricDate            DateTime     @map("metric_date") @db.Date
+  recordedAt            DateTime     @map("recorded_at") @db.Timestamptz(6)
+  source                MetricSource @default(OURA)
+  sourceRecordId        String?      @map("source_record_id")
+  stressHighSeconds     Int?         @map("stress_high_seconds")
+  stressMediumSeconds   Int?         @map("stress_medium_seconds")
+  stressLowSeconds      Int?         @map("stress_low_seconds")
+  recoverySeconds       Int?         @map("recovery_seconds")
+  daySummary            String?      @map("day_summary")
+  raw                   Json?
+  createdAt             DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  physiologyMetric PhysiologyMetric?   @relation(fields: [physiologyMetricId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, source, metricDate])
+  @@unique([userId, source, sourceRecordId])
+  @@index([userId, metricDate])
+  @@index([userId, recordedAt])
+  @@map("stress_metrics")
+}
+
+model ActivityMetric {
+  id                    String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId                String       @map("user_id") @db.Uuid
+  physiologyMetricId    String?      @unique @map("physiology_metric_id") @db.Uuid
+  metricDate            DateTime     @map("metric_date") @db.Date
+  source                MetricSource @default(OURA)
+  sourceRecordId        String?      @map("source_record_id")
+  score                 Int?
+  steps                 Int?
+  activeCalories        Int?         @map("active_calories")
+  totalCalories         Int?         @map("total_calories")
+  equivalentWalkingKm   Float?       @map("equivalent_walking_km")
+  highActivitySeconds   Int?         @map("high_activity_seconds")
+  mediumActivitySeconds Int?         @map("medium_activity_seconds")
+  lowActivitySeconds    Int?         @map("low_activity_seconds")
+  sedentarySeconds      Int?         @map("sedentary_seconds")
+  targetCalories        Int?         @map("target_calories")
+  raw                   Json?
+  createdAt             DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  physiologyMetric PhysiologyMetric?   @relation(fields: [physiologyMetricId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, source, metricDate])
+  @@unique([userId, source, sourceRecordId])
+  @@index([userId, metricDate])
+  @@map("activity_metrics")
+}
+
+model HeartRateMetric {
+  id                    String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId                String       @map("user_id") @db.Uuid
+  physiologyMetricId    String?      @unique @map("physiology_metric_id") @db.Uuid
+  metricDate            DateTime     @map("metric_date") @db.Date
+  recordedAt            DateTime     @map("recorded_at") @db.Timestamptz(6)
+  source                MetricSource @default(OURA)
+  sourceRecordId        String?      @map("source_record_id")
+  bpm                   Int
+  context               String?
+  raw                   Json?
+  createdAt             DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  physiologyMetric PhysiologyMetric?   @relation(fields: [physiologyMetricId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, source, recordedAt, context])
+  @@unique([userId, source, sourceRecordId])
+  @@index([userId, metricDate])
+  @@index([userId, recordedAt])
+  @@map("heart_rate_metrics")
+}
+
+model HrvMetric {
+  id                    String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId                String       @map("user_id") @db.Uuid
+  physiologyMetricId    String?      @unique @map("physiology_metric_id") @db.Uuid
+  metricDate            DateTime     @map("metric_date") @db.Date
+  recordedAt            DateTime     @map("recorded_at") @db.Timestamptz(6)
+  source                MetricSource @default(OURA)
+  sourceRecordId        String?      @map("source_record_id")
+  rmssd                 Float?
+  sdnn                  Float?
+  coverage              String?
+  raw                   Json?
+  createdAt             DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  physiologyMetric PhysiologyMetric?   @relation(fields: [physiologyMetricId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, source, recordedAt])
+  @@unique([userId, source, sourceRecordId])
+  @@index([userId, metricDate])
+  @@index([userId, recordedAt])
+  @@map("hrv_metrics")
+}
+
+model BodyTemperatureMetric {
+  id                    String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId                String       @map("user_id") @db.Uuid
+  physiologyMetricId    String?      @unique @map("physiology_metric_id") @db.Uuid
+  metricDate            DateTime     @map("metric_date") @db.Date
+  recordedAt            DateTime     @map("recorded_at") @db.Timestamptz(6)
+  source                MetricSource @default(OURA)
+  sourceRecordId        String?      @map("source_record_id")
+  temperatureCelsius    Float?       @map("temperature_celsius")
+  deviationCelsius      Float?       @map("deviation_celsius")
+  raw                   Json?
+  createdAt             DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  physiologyMetric PhysiologyMetric?   @relation(fields: [physiologyMetricId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, source, recordedAt])
+  @@unique([userId, source, sourceRecordId])
+  @@index([userId, metricDate])
+  @@index([userId, recordedAt])
+  @@map("body_temperature_metrics")
+}
+
+model RecoveryMetric {
+  id                    String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId                String       @map("user_id") @db.Uuid
+  physiologyMetricId    String?      @unique @map("physiology_metric_id") @db.Uuid
+  metricDate            DateTime     @map("metric_date") @db.Date
+  source                MetricSource @default(OURA)
+  sourceRecordId        String?      @map("source_record_id")
+  recoveryScore         Int?         @map("recovery_score")
+  readinessScore        Int?         @map("readiness_score")
+  sleepScore            Int?         @map("sleep_score")
+  restingHeartRate      Int?         @map("resting_heart_rate")
+  hrvRmssd              Float?       @map("hrv_rmssd")
+  temperatureDeviation  Float?       @map("temperature_deviation")
+  interpretation        String?
+  raw                   Json?
+  createdAt             DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  physiologyMetric PhysiologyMetric?   @relation(fields: [physiologyMetricId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, source, metricDate])
+  @@unique([userId, source, sourceRecordId])
+  @@index([userId, metricDate])
+  @@map("recovery_metrics")
+}
+
+model OuraRaw {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  collection     String
+  externalId     String   @map("external_id")
+  metricDate     DateTime? @map("metric_date") @db.Date
+  recordedAt     DateTime? @map("recorded_at") @db.Timestamptz(6)
+  payload        Json
+  checksum       String?
+  ingestedAt     DateTime @default(now()) @map("ingested_at") @db.Timestamptz(6)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, collection, externalId])
+  @@index([userId, collection])
+  @@index([userId, metricDate])
+  @@index([userId, ingestedAt])
+  @@map("oura_raw")
+}
+
+model Report {
+  id          String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String       @map("user_id") @db.Uuid
+  title       String
+  periodStart DateTime     @map("period_start") @db.Date
+  periodEnd   DateTime     @map("period_end") @db.Date
+  status      ReportStatus @default(DRAFT)
+  content     Json
+  generatedBy String?      @map("generated_by")
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  aiInsights AiInsight[]
+
+  @@index([userId, periodStart, periodEnd])
+  @@index([userId, createdAt])
+  @@map("reports")
+}
+
+model Alert {
+  id          String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String        @map("user_id") @db.Uuid
+  metricDate  DateTime?     @map("metric_date") @db.Date
+  severity    AlertSeverity @default(INFO)
+  status      AlertStatus   @default(OPEN)
+  title       String
+  message     String
+  signalType  String?       @map("signal_type")
+  metadata    Json?
+  triggeredAt DateTime      @default(now()) @map("triggered_at") @db.Timestamptz(6)
+  resolvedAt  DateTime?     @map("resolved_at") @db.Timestamptz(6)
+  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status, triggeredAt])
+  @@index([userId, metricDate])
+  @@map("alerts")
+}
+
+model AiInsight {
+  id          String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String        @map("user_id") @db.Uuid
+  reportId    String?       @map("report_id") @db.Uuid
+  metricDate  DateTime?     @map("metric_date") @db.Date
+  status      InsightStatus @default(PENDING)
+  model       String
+  promptHash  String?       @map("prompt_hash")
+  insightType String        @map("insight_type")
+  title       String
+  body        String
+  confidence  Float?
+  evidence    Json?
+  metadata    Json?
+  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  report Report? @relation(fields: [reportId], references: [id], onDelete: SetNull)
+
+  @@index([userId, metricDate])
+  @@index([userId, insightType, createdAt])
+  @@index([reportId])
+  @@map("ai_insights")
 }
