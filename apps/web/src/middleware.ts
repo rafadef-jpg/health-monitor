@@ -8,8 +8,9 @@ import {
   refreshCookieMaxAge,
 } from "@/lib/auth/cookies";
 import { getSessionFromTokens } from "@/lib/auth/session";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-const protectedRoutes = ["/dashboard"];
+const protectedRoutes = ["/dashboard", "/settings"];
 const authRoutes = ["/login", "/signup"];
 
 function redirectToLogin(request: NextRequest) {
@@ -24,10 +25,25 @@ function redirectToLogin(request: NextRequest) {
   return response;
 }
 
+async function hasOuraToken(accessToken: string, userId: string): Promise<boolean> {
+  try {
+    const supabase = createSupabaseServerClient(accessToken);
+    const { data } = await supabase
+      .from("user_integrations")
+      .select("access_token")
+      .eq("user_id", userId)
+      .eq("provider", "oura")
+      .maybeSingle();
+    return !!data?.access_token;
+  } catch {
+    return false;
+  }
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const isProtectedRoute = protectedRoutes.some((route) => pathname.startsWith(route));
-  const isAuthRoute = authRoutes.some((route) => pathname.startsWith(route));
+  const isProtectedRoute = protectedRoutes.some((r) => pathname.startsWith(r));
+  const isAuthRoute = authRoutes.some((r) => pathname.startsWith(r));
 
   if (!isProtectedRoute && !isAuthRoute) {
     return NextResponse.next();
@@ -42,11 +58,28 @@ export async function middleware(request: NextRequest) {
   }
 
   if (isAuthRoute) {
-    const dashboardUrl = request.nextUrl.clone();
-    dashboardUrl.pathname = "/dashboard";
-    dashboardUrl.search = "";
+    const url = request.nextUrl.clone();
+    url.pathname = "/dashboard";
+    url.search = "";
+    return NextResponse.redirect(url);
+  }
 
-    return NextResponse.redirect(dashboardUrl);
+  if (pathname === "/dashboard") {
+    const effectiveToken =
+      sessionResult.refreshed && sessionResult.session
+        ? sessionResult.session.access_token
+        : accessToken;
+
+    if (effectiveToken) {
+      const tokenExists = await hasOuraToken(effectiveToken, sessionResult.user.id);
+      if (!tokenExists) {
+        const setupUrl = request.nextUrl.clone();
+        setupUrl.pathname = "/settings/integrations";
+        setupUrl.search = "";
+        setupUrl.searchParams.set("setup", "1");
+        return NextResponse.redirect(setupUrl);
+      }
+    }
   }
 
   const response = NextResponse.next();
@@ -66,5 +99,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/login", "/signup"],
+  matcher: ["/dashboard/:path*", "/settings/:path*", "/login", "/signup"],
 };
