@@ -5,7 +5,7 @@ import { AUTH_ACCESS_COOKIE } from "@/lib/auth/cookies";
 import { getUserFromAccessToken } from "@/lib/auth/session";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { SyncButton } from "@/components/dashboard/sync-button";
-import { ReportButton } from "@/components/dashboard/report-button";
+import { ReportPanel } from "@/components/dashboard/report-panel";
 import { calcRecovery } from "@repo/physiology";
 
 type Snapshot = {
@@ -15,6 +15,7 @@ type Snapshot = {
   sleep_dim_score: number | null;
   stress_score: number | null;
   snapshot_date: string;
+  report_text: string | null;
 };
 
 const SEMAPHORE_COLOR: Record<string, string> = {
@@ -50,7 +51,7 @@ export default async function DashboardPage() {
     const twoDaysAgo = new Date(Date.now() - 2 * 86400000).toISOString().slice(0, 10);
     const { data } = await supabase
       .from("daily_physiology_snapshot")
-      .select("recovery_score, hrv_avg, rhr_bpm, sleep_dim_score, stress_score, snapshot_date")
+      .select("recovery_score, hrv_avg, rhr_bpm, sleep_dim_score, stress_score, snapshot_date, report_text")
       .eq("user_id", user.id)
       .gte("snapshot_date", twoDaysAgo)
       .order("snapshot_date", { ascending: false })
@@ -164,10 +165,11 @@ export default async function DashboardPage() {
             ))}
           </section>
 
-          <div className="flex items-center justify-end gap-3">
-            <ReportButton />
+          <div className="flex justify-end">
             <SyncButton />
           </div>
+
+          <ReportPanel initialReport={snapshot.report_text ?? null} />
         </>
       )}
     </main>

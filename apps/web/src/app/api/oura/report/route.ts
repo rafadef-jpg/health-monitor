@@ -144,5 +144,12 @@ Não use emojis. Não repita os números brutos em todos os blocos — use uma v
   const report =
     message.content[0].type === "text" ? message.content[0].text : "";
 
+  // Salva o relatório no banco
+  await supabase
+    .from("daily_physiology_snapshot")
+    .update({ report_text: report })
+    .eq("user_id", user.id)
+    .eq("snapshot_date", snapshot.snapshot_date);
+
   return NextResponse.json({ report, snapshot, engine });
 }
