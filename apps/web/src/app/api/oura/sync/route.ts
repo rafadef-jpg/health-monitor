@@ -6,7 +6,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const OURA_BASE = "https://api.ouraring.com/v2/usercollection";
 
-type OuraEndpoint = "daily_readiness" | "daily_sleep";
+type OuraEndpoint = "daily_readiness" | "daily_sleep" | "sleep" | "daily_stress";
 
 async function fetchOura(endpoint: OuraEndpoint, token: string, startDate: string, endDate: string) {
   const url = `${OURA_BASE}/${endpoint}?start_date=${startDate}&end_date=${endDate}`;
@@ -27,6 +27,18 @@ function isoDateOffset(offsetDays: number): string {
 function latestEntry(response: any): any {
   const data: any[] = response?.data ?? [];
   return data.length > 0 ? data[data.length - 1] : null;
+}
+
+function bestSleepSession(response: any, targetDate: string): any {
+  const sessions: any[] = response?.data ?? [];
+  const withHrv = sessions.filter((s) => s.average_hrv != null);
+  // prefer session matching target date, longest duration first
+  const onTarget = withHrv
+    .filter((s) => s.day === targetDate)
+    .sort((a, b) => (b.total_sleep_duration ?? 0) - (a.total_sleep_duration ?? 0));
+  if (onTarget.length > 0) return onTarget[0];
+  // fallback: most recent session with valid HRV
+  return withHrv.length > 0 ? withHrv[withHrv.length - 1] : null;
 }
 
 export async function POST() {
@@ -51,17 +63,21 @@ export async function POST() {
     return NextResponse.json({ error: "Token Oura não configurado." }, { status: 400 });
   }
 
+  const threeDaysAgo = isoDateOffset(-3);
   const yesterday = isoDateOffset(-1);
+  const tomorrow = isoDateOffset(1);
   const today = isoDateOffset(0);
   const ouraToken = integration.access_token;
 
-  let readinessData: unknown, sleepData: unknown;
+  let readinessData: unknown, sleepData: unknown, sleepSessionData: unknown, stressData: unknown;
   let fetchError: string | null = null;
 
   try {
-    [readinessData, sleepData] = await Promise.all([
+    [readinessData, sleepData, sleepSessionData, stressData] = await Promise.all([
       fetchOura("daily_readiness", ouraToken, yesterday, today),
       fetchOura("daily_sleep", ouraToken, yesterday, today),
+      fetchOura("sleep", ouraToken, threeDaysAgo, tomorrow),
+      fetchOura("daily_stress", ouraToken, yesterday, today).catch(() => ({ data: [] })),
     ]);
   } catch (err) {
     fetchError = err instanceof Error ? err.message : "Erro ao buscar dados da Oura.";
@@ -78,28 +94,25 @@ export async function POST() {
     return NextResponse.json({ error: fetchError }, { status: 502 });
   }
 
-  console.log("[oura] readiness raw:", JSON.stringify(readinessData, null, 2));
-  console.log("[oura] sleep raw:", JSON.stringify(sleepData, null, 2));
-
   const rd = latestEntry(readinessData);
   const sl = latestEntry(sleepData);
-
-  console.log("[oura/sync] daily_readiness entry:", JSON.stringify(rd));
-  console.log("[oura/sync] daily_sleep entry:", JSON.stringify(sl));
+  const st = latestEntry(stressData);
+  const snapshotDate = rd?.day ?? sl?.day ?? today;
+  const ss = bestSleepSession(sleepSessionData, snapshotDate);
 
   await supabase.from("oura_raw").insert([
     { user_id: user.id, endpoint: "daily_readiness", date: rd?.day ?? today, payload: readinessData },
     { user_id: user.id, endpoint: "daily_sleep", date: sl?.day ?? today, payload: sleepData },
+    { user_id: user.id, endpoint: "sleep", date: ss?.day ?? today, payload: sleepSessionData },
   ]);
-
-  const snapshotDate = rd?.day ?? sl?.day ?? today;
 
   const snapshot = {
     user_id: user.id,
     snapshot_date: snapshotDate,
     recovery_score: rd?.score ?? null,
-    hrv_avg: rd?.average_hrv ?? sl?.average_hrv ?? null,
+    hrv_avg: ss?.average_hrv ?? null,
     sleep_dim_score: sl?.score ?? null,
+    stress_score: st?.stress_high != null ? Math.round(st.stress_high / 60) : null,
     updated_at: new Date().toISOString(),
   };
 

@@ -39,7 +39,7 @@ export default async function DashboardPage() {
     { title: "HRV", value: snapshot?.hrv_avg != null ? `${snapshot.hrv_avg} ms` : null, icon: Activity },
     { title: "Recovery", value: snapshot?.recovery_score != null ? `${snapshot.recovery_score}` : null, icon: Zap },
     { title: "Sono", value: snapshot?.sleep_dim_score != null ? `${snapshot.sleep_dim_score}` : null, icon: Moon },
-    { title: "Stress", value: snapshot?.stress_score != null ? `${snapshot.stress_score}` : null, icon: Wind },
+    { title: "Stress alto", value: snapshot?.stress_score != null ? `${snapshot.stress_score} min` : null, icon: Wind },
   ];
 
   return (
