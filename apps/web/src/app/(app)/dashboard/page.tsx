@@ -5,6 +5,7 @@ import { AUTH_ACCESS_COOKIE } from "@/lib/auth/cookies";
 import { getUserFromAccessToken } from "@/lib/auth/session";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { SyncButton } from "@/components/dashboard/sync-button";
+import { ReportButton } from "@/components/dashboard/report-button";
 import { calcRecovery } from "@repo/physiology";
 
 type Snapshot = {
@@ -163,7 +164,8 @@ export default async function DashboardPage() {
             ))}
           </section>
 
-          <div className="flex justify-end">
+          <div className="flex items-center justify-end gap-3">
+            <ReportButton />
             <SyncButton />
           </div>
         </>
