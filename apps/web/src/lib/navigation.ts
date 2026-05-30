@@ -5,4 +5,8 @@ export const mainNavigation: NavItem[] = [
     title: "Dashboard",
     href: "/dashboard",
   },
+  {
+    title: "Registrar",
+    href: "/registrar",
+  },
 ];

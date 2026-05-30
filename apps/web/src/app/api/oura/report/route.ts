@@ -36,11 +36,29 @@ export async function POST() {
     );
   }
 
+  // Busca inputs manuais de hoje
+  const today = new Date().toISOString().slice(0, 10);
+  const { data: inputs } = await supabase
+    .from("daily_inputs")
+    .select("pressao_sistolica, pressao_diastolica, medicamentos, sintomas, sentimento")
+    .eq("user_id", user.id)
+    .eq("input_date", today)
+    .maybeSingle();
+
   const engine = calcRecovery({
     hrv_ms: snapshot.hrv_avg,
     rhr_bpm: snapshot.rhr_bpm,
     sleep_score: snapshot.sleep_dim_score,
   });
+
+  const inputsSection = inputs
+    ? `
+Dados manuais de hoje:
+- Pressão arterial: ${inputs.pressao_sistolica && inputs.pressao_diastolica ? `${inputs.pressao_sistolica}/${inputs.pressao_diastolica} mmHg` : "não informado"}
+- Como está se sentindo: ${inputs.sentimento ? ["Péssimo", "Ruim", "Ok", "Bem", "Ótimo"][inputs.sentimento - 1] : "não informado"} (${inputs.sentimento ?? "?"}/5)
+- Sintomas: ${inputs.sintomas || "nenhum"}
+- Medicamentos: ${inputs.medicamentos || "não informado"}`
+    : "\nDados manuais: não registrados hoje.";
 
   const userMessage = `
 Dados de hoje (${snapshot.snapshot_date}):
@@ -55,6 +73,7 @@ Componentes do score:
 - HRV: ${engine.components.hrv != null ? Math.round(engine.components.hrv) + "/100" : "indisponível"}
 - FC repouso: ${engine.components.rhr != null ? Math.round(engine.components.rhr) + "/100" : "indisponível"}
 - Sono: ${engine.components.sleep != null ? Math.round(engine.components.sleep) + "/100" : "indisponível"}
+${inputsSection}
 `.trim();
 
   let message;
@@ -106,6 +125,13 @@ Gere um relatório em 3 blocos curtos (máx 4 linhas cada):
 
 **O que fazer**
 [2-3 recomendações práticas e diretas para o dia de hoje]
+
+DADOS MANUAIS — como usar:
+- Pressão > 135/85: menciona no bloco "Como você está hoje", sem alarmar se for evento único.
+- Sintomas presentes: leva em conta na recomendação de treino.
+- Sentimento 1-2: suaviza a recomendação de treino independente do score.
+- Medicamentos: contexto apenas — não comenta nem recomenda nada sobre eles.
+- Se dados manuais não foram registrados: não menciona a ausência.
 
 Não use emojis. Não repita os números brutos em todos os blocos — use uma vez e depois referencie naturalmente.`,
       messages: [{ role: "user", content: userMessage }],
