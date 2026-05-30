@@ -10,7 +10,7 @@ const withPWA = withPWAInit({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  transpilePackages: ["@rafael-defendi/shared", "@rafael-defendi/db"],
+  transpilePackages: ["@rafael-defendi/shared", "@rafael-defendi/db", "@rafael-defendi/physiology"],
 };
 
 export default withPWA(nextConfig);

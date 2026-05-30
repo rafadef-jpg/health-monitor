@@ -16,6 +16,7 @@
     "@radix-ui/react-label": "^2.1.0",
     "@radix-ui/react-slot": "^1.1.0",
     "@rafael-defendi/db": "*",
+    "@rafael-defendi/physiology": "*",
     "@rafael-defendi/shared": "*",
     "@supabase/supabase-js": "^2.45.4",
     "class-variance-authority": "^0.7.0",

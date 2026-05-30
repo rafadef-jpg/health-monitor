@@ -111,6 +111,7 @@ export async function POST() {
     snapshot_date: snapshotDate,
     recovery_score: rd?.score ?? null,
     hrv_avg: ss?.average_hrv ?? null,
+    rhr_bpm: ss?.lowest_heart_rate ?? null,
     sleep_dim_score: sl?.score ?? null,
     stress_score: st?.stress_high != null ? Math.round(st.stress_high / 60) : null,
     updated_at: new Date().toISOString(),

@@ -1,17 +1,40 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { Activity, Moon, Zap, Wind, Settings } from "lucide-react";
+import { Activity, Moon, Zap, Wind, Heart, Settings } from "lucide-react";
 import { AUTH_ACCESS_COOKIE } from "@/lib/auth/cookies";
 import { getUserFromAccessToken } from "@/lib/auth/session";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { SyncButton } from "@/components/dashboard/sync-button";
+import { calcRecovery } from "@repo/physiology";
 
 type Snapshot = {
   recovery_score: number | null;
   hrv_avg: number | null;
+  rhr_bpm: number | null;
   sleep_dim_score: number | null;
   stress_score: number | null;
   snapshot_date: string;
+};
+
+const SEMAPHORE_COLOR: Record<string, string> = {
+  green: "text-green-500",
+  yellow: "text-yellow-400",
+  orange: "text-orange-400",
+  red: "text-red-500",
+};
+
+const SEMAPHORE_BG: Record<string, string> = {
+  green: "bg-green-500/10",
+  yellow: "bg-yellow-400/10",
+  orange: "bg-orange-400/10",
+  red: "bg-red-500/10",
+};
+
+const SEMAPHORE_LABEL: Record<string, string> = {
+  green: "Ótimo",
+  yellow: "Regular",
+  orange: "Atenção",
+  red: "Crítico",
 };
 
 export default async function DashboardPage() {
@@ -26,7 +49,7 @@ export default async function DashboardPage() {
     const twoDaysAgo = new Date(Date.now() - 2 * 86400000).toISOString().slice(0, 10);
     const { data } = await supabase
       .from("daily_physiology_snapshot")
-      .select("recovery_score, hrv_avg, sleep_dim_score, stress_score, snapshot_date")
+      .select("recovery_score, hrv_avg, rhr_bpm, sleep_dim_score, stress_score, snapshot_date")
       .eq("user_id", user.id)
       .gte("snapshot_date", twoDaysAgo)
       .order("snapshot_date", { ascending: false })
@@ -34,6 +57,14 @@ export default async function DashboardPage() {
       .maybeSingle();
     snapshot = data ?? null;
   }
+
+  const engineResult = snapshot
+    ? calcRecovery({
+        hrv_ms: snapshot.hrv_avg,
+        rhr_bpm: snapshot.rhr_bpm,
+        sleep_score: snapshot.sleep_dim_score,
+      })
+    : null;
 
   const metrics = [
     { title: "HRV", value: snapshot?.hrv_avg != null ? `${snapshot.hrv_avg} ms` : null, icon: Activity },
@@ -73,6 +104,48 @@ export default async function DashboardPage() {
         </div>
       ) : (
         <>
+          {/* Recovery Score engine */}
+          {engineResult && (
+            <section className="biometric-panel rounded-lg p-5">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div
+                    className={`flex size-14 items-center justify-center rounded-xl ${SEMAPHORE_BG[engineResult.semaphore]}`}
+                  >
+                    <Heart className={`size-7 ${SEMAPHORE_COLOR[engineResult.semaphore]}`} />
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-xs uppercase tracking-widest">
+                      Recovery Score
+                    </p>
+                    <p className={`text-4xl font-bold ${SEMAPHORE_COLOR[engineResult.semaphore]}`}>
+                      {engineResult.score}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span
+                    className={`inline-block rounded-full px-3 py-1 text-sm font-semibold ${SEMAPHORE_BG[engineResult.semaphore]} ${SEMAPHORE_COLOR[engineResult.semaphore]}`}
+                  >
+                    {SEMAPHORE_LABEL[engineResult.semaphore]}
+                  </span>
+                  <div className="text-muted-foreground mt-2 space-y-0.5 text-xs">
+                    {engineResult.components.hrv != null && (
+                      <p>HRV: {Math.round(engineResult.components.hrv)}/100</p>
+                    )}
+                    {engineResult.components.rhr != null && (
+                      <p>FC repouso: {Math.round(engineResult.components.rhr)}/100</p>
+                    )}
+                    {engineResult.components.sleep != null && (
+                      <p>Sono: {Math.round(engineResult.components.sleep)}/100</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* Cards biométricos */}
           <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {metrics.map((metric) => (
               <article key={metric.title} className="biometric-panel rounded-lg p-4">
@@ -89,6 +162,7 @@ export default async function DashboardPage() {
               </article>
             ))}
           </section>
+
           <div className="flex justify-end">
             <SyncButton />
           </div>

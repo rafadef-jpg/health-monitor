@@ -6,7 +6,8 @@
   "workspaces": [
     "apps/web",
     "packages/shared",
-    "packages/db"
+    "packages/db",
+    "packages/physiology"
   ],
   "scripts": {
     "dev": "npm run dev -w @rafael-defendi/web",
