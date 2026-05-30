@@ -4,6 +4,7 @@ import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { AUTH_ACCESS_COOKIE } from "@/lib/auth/cookies";
 import { getUserFromAccessToken } from "@/lib/auth/session";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { generateDailyReport } from "@/lib/report/generate";
 
 const OURA_BASE = "https://api.ouraring.com/v2/usercollection";
 
@@ -127,7 +128,30 @@ async function handleCronSync() {
 
   const ok = results.filter((r) => r.status === "fulfilled").length;
   console.log(`[oura/sync] cron: ${ok}/${integrations.length} usuários sincronizados`);
-  return NextResponse.json({ synced: ok, total: integrations.length });
+
+  // Gera relatório para cada usuário sincronizado com sucesso
+  const reportResults = await Promise.allSettled(
+    integrations.map(async (i: { user_id: string; access_token: string }) => {
+      const today = new Date().toISOString().slice(0, 10);
+      const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+      const { data: snapshot } = await service
+        .from("daily_physiology_snapshot")
+        .select("recovery_score, hrv_avg, rhr_bpm, sleep_dim_score, stress_score, snapshot_date")
+        .eq("user_id", i.user_id)
+        .gte("snapshot_date", yesterday)
+        .lte("snapshot_date", today)
+        .order("snapshot_date", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!snapshot) return;
+      await generateDailyReport(i.user_id, snapshot, service);
+    })
+  );
+
+  const reportsOk = reportResults.filter((r) => r.status === "fulfilled").length;
+  console.log(`[oura/sync] relatórios gerados: ${reportsOk}/${integrations.length}`);
+
+  return NextResponse.json({ synced: ok, total: integrations.length, reports: reportsOk });
 }
 
 export async function POST(request: Request) {
