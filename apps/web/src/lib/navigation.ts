@@ -9,4 +9,8 @@ export const mainNavigation: NavItem[] = [
     title: "Registrar",
     href: "/registrar",
   },
+  {
+    title: "Histórico",
+    href: "/historico",
+  },
 ];
