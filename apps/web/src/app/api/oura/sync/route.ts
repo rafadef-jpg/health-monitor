@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { AUTH_ACCESS_COOKIE } from "@/lib/auth/cookies";
 import { getUserFromAccessToken } from "@/lib/auth/session";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -24,24 +25,123 @@ function isoDateOffset(offsetDays: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-function latestEntry(response: any): any {
-  const data: any[] = response?.data ?? [];
-  return data.length > 0 ? data[data.length - 1] : null;
+function latestEntry(response: unknown): Record<string, unknown> | null {
+  const data = (response as { data?: unknown[] })?.data ?? [];
+  return data.length > 0 ? (data[data.length - 1] as Record<string, unknown>) : null;
 }
 
-function bestSleepSession(response: any, targetDate: string): any {
-  const sessions: any[] = response?.data ?? [];
+function bestSleepSession(response: unknown, targetDate: string): Record<string, unknown> | null {
+  const sessions = ((response as { data?: unknown[] })?.data ?? []) as Record<string, unknown>[];
   const withHrv = sessions.filter((s) => s.average_hrv != null);
-  // prefer session matching target date, longest duration first
   const onTarget = withHrv
     .filter((s) => s.day === targetDate)
-    .sort((a, b) => (b.total_sleep_duration ?? 0) - (a.total_sleep_duration ?? 0));
+    .sort((a, b) => ((b.total_sleep_duration as number) ?? 0) - ((a.total_sleep_duration as number) ?? 0));
   if (onTarget.length > 0) return onTarget[0];
-  // fallback: most recent session with valid HRV
   return withHrv.length > 0 ? withHrv[withHrv.length - 1] : null;
 }
 
-export async function POST() {
+async function syncUser(userId: string, ouraToken: string, supabase: SupabaseClient) {
+  const threeDaysAgo = isoDateOffset(-3);
+  const yesterday = isoDateOffset(-1);
+  const tomorrow = isoDateOffset(1);
+  const today = isoDateOffset(0);
+
+  let readinessData: unknown, sleepData: unknown, sleepSessionData: unknown, stressData: unknown;
+
+  [readinessData, sleepData, sleepSessionData, stressData] = await Promise.all([
+    fetchOura("daily_readiness", ouraToken, yesterday, today),
+    fetchOura("daily_sleep", ouraToken, yesterday, today),
+    fetchOura("sleep", ouraToken, threeDaysAgo, tomorrow),
+    fetchOura("daily_stress", ouraToken, yesterday, today).catch(() => ({ data: [] })),
+  ]);
+
+  const rd = latestEntry(readinessData);
+  const sl = latestEntry(sleepData);
+  const st = latestEntry(stressData);
+  const snapshotDate = (rd?.day ?? sl?.day ?? today) as string;
+  const ss = bestSleepSession(sleepSessionData, snapshotDate);
+
+  await supabase.from("oura_raw").insert([
+    { user_id: userId, endpoint: "daily_readiness", date: rd?.day ?? today, payload: readinessData },
+    { user_id: userId, endpoint: "daily_sleep", date: sl?.day ?? today, payload: sleepData },
+    { user_id: userId, endpoint: "sleep", date: ss?.day ?? today, payload: sleepSessionData },
+  ]);
+
+  const snapshot = {
+    user_id: userId,
+    snapshot_date: snapshotDate,
+    recovery_score: (rd?.score as number) ?? null,
+    hrv_avg: (ss?.average_hrv as number) ?? null,
+    rhr_bpm: (ss?.lowest_heart_rate as number) ?? null,
+    sleep_dim_score: (sl?.score as number) ?? null,
+    stress_score: st?.stress_high != null ? Math.round((st.stress_high as number) / 60) : null,
+    updated_at: new Date().toISOString(),
+  };
+
+  const { error: snapshotError } = await supabase
+    .from("daily_physiology_snapshot")
+    .upsert(snapshot, { onConflict: "user_id,snapshot_date" });
+
+  if (snapshotError) {
+    console.error("[oura/sync] snapshot error:", snapshotError.code, snapshotError.message);
+  } else {
+    console.log("[oura/sync] snapshot salvo:", JSON.stringify(snapshot));
+  }
+
+  await supabase
+    .from("user_integrations")
+    .update({ last_sync_at: new Date().toISOString() })
+    .eq("user_id", userId)
+    .eq("provider", "oura");
+
+  await supabase.from("sync_logs").insert({
+    user_id: userId,
+    provider: "oura",
+    status: snapshotError ? "partial" : "success",
+    message: snapshotError?.message ?? "Sincronizado com sucesso.",
+    synced_at: new Date().toISOString(),
+  });
+
+  return snapshot;
+}
+
+async function handleCronSync() {
+  const service = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
+  const { data: integrations, error } = await service
+    .from("user_integrations")
+    .select("user_id, access_token")
+    .eq("provider", "oura")
+    .not("access_token", "is", null);
+
+  if (error || !integrations?.length) {
+    return NextResponse.json({ synced: 0, error: error?.message });
+  }
+
+  const results = await Promise.allSettled(
+    integrations.map((i: { user_id: string; access_token: string }) =>
+      syncUser(i.user_id, i.access_token, service)
+    )
+  );
+
+  const ok = results.filter((r) => r.status === "fulfilled").length;
+  console.log(`[oura/sync] cron: ${ok}/${integrations.length} usuários sincronizados`);
+  return NextResponse.json({ synced: ok, total: integrations.length });
+}
+
+export async function POST(request: Request) {
+  // — Cron path —
+  const authHeader = request.headers.get("authorization");
+  const cronSecret = process.env.CRON_SECRET;
+
+  if (cronSecret && authHeader === `Bearer ${cronSecret}`) {
+    return handleCronSync();
+  }
+
+  // — User path (cookie) —
   const cookieStore = await cookies();
   const accessToken = cookieStore.get(AUTH_ACCESS_COOKIE)?.value;
   const user = await getUserFromAccessToken(accessToken);
@@ -63,83 +163,20 @@ export async function POST() {
     return NextResponse.json({ error: "Token Oura não configurado." }, { status: 400 });
   }
 
-  const threeDaysAgo = isoDateOffset(-3);
-  const yesterday = isoDateOffset(-1);
-  const tomorrow = isoDateOffset(1);
-  const today = isoDateOffset(0);
-  const ouraToken = integration.access_token;
-
-  let readinessData: unknown, sleepData: unknown, sleepSessionData: unknown, stressData: unknown;
-  let fetchError: string | null = null;
-
+  let snapshot;
   try {
-    [readinessData, sleepData, sleepSessionData, stressData] = await Promise.all([
-      fetchOura("daily_readiness", ouraToken, yesterday, today),
-      fetchOura("daily_sleep", ouraToken, yesterday, today),
-      fetchOura("sleep", ouraToken, threeDaysAgo, tomorrow),
-      fetchOura("daily_stress", ouraToken, yesterday, today).catch(() => ({ data: [] })),
-    ]);
+    snapshot = await syncUser(user.id, integration.access_token, supabase);
   } catch (err) {
-    fetchError = err instanceof Error ? err.message : "Erro ao buscar dados da Oura.";
-  }
-
-  if (fetchError) {
+    const message = err instanceof Error ? err.message : "Erro ao buscar dados da Oura.";
     await supabase.from("sync_logs").insert({
       user_id: user.id,
       provider: "oura",
       status: "error",
-      message: fetchError,
+      message,
       synced_at: new Date().toISOString(),
     });
-    return NextResponse.json({ error: fetchError }, { status: 502 });
+    return NextResponse.json({ error: message }, { status: 502 });
   }
-
-  const rd = latestEntry(readinessData);
-  const sl = latestEntry(sleepData);
-  const st = latestEntry(stressData);
-  const snapshotDate = rd?.day ?? sl?.day ?? today;
-  const ss = bestSleepSession(sleepSessionData, snapshotDate);
-
-  await supabase.from("oura_raw").insert([
-    { user_id: user.id, endpoint: "daily_readiness", date: rd?.day ?? today, payload: readinessData },
-    { user_id: user.id, endpoint: "daily_sleep", date: sl?.day ?? today, payload: sleepData },
-    { user_id: user.id, endpoint: "sleep", date: ss?.day ?? today, payload: sleepSessionData },
-  ]);
-
-  const snapshot = {
-    user_id: user.id,
-    snapshot_date: snapshotDate,
-    recovery_score: rd?.score ?? null,
-    hrv_avg: ss?.average_hrv ?? null,
-    rhr_bpm: ss?.lowest_heart_rate ?? null,
-    sleep_dim_score: sl?.score ?? null,
-    stress_score: st?.stress_high != null ? Math.round(st.stress_high / 60) : null,
-    updated_at: new Date().toISOString(),
-  };
-
-  const { error: snapshotError } = await supabase
-    .from("daily_physiology_snapshot")
-    .upsert(snapshot, { onConflict: "user_id,snapshot_date" });
-
-  if (snapshotError) {
-    console.error("[oura/sync] snapshot error:", snapshotError.code, snapshotError.message);
-  } else {
-    console.log("[oura/sync] snapshot salvo:", JSON.stringify(snapshot));
-  }
-
-  await supabase
-    .from("user_integrations")
-    .update({ last_sync_at: new Date().toISOString() })
-    .eq("user_id", user.id)
-    .eq("provider", "oura");
-
-  await supabase.from("sync_logs").insert({
-    user_id: user.id,
-    provider: "oura",
-    status: snapshotError ? "partial" : "success",
-    message: snapshotError?.message ?? "Sincronizado com sucesso.",
-    synced_at: new Date().toISOString(),
-  });
 
   return NextResponse.json({ snapshot });
 }
