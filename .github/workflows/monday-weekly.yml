@@ -1,0 +1,17 @@
+name: Weekly Summary (segunda 07h)
+
+on:
+  schedule:
+    - cron: "30 10 * * 1" # segunda 07:30 BRT = 10:30 UTC (após o morning sync das 10h)
+  workflow_dispatch:
+
+jobs:
+  weekly:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Gerar resumo semanal
+        run: |
+          curl -s -X POST \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            "${{ secrets.APP_URL }}/api/oura/weekly-report"

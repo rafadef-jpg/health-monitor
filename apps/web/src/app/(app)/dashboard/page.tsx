@@ -45,19 +45,30 @@ export default async function DashboardPage() {
   const user = await getUserFromAccessToken(accessToken);
 
   let snapshot: Snapshot | null = null;
+  let weeklyReport: { report_text: string; week_start: string; week_end: string; dias_verde: number; dias_amarelo: number; dias_laranja: number; dias_vermelho: number } | null = null;
 
   if (user) {
     const supabase = createSupabaseServerClient(accessToken);
     const twoDaysAgo = new Date(Date.now() - 2 * 86400000).toISOString().slice(0, 10);
-    const { data } = await supabase
-      .from("daily_physiology_snapshot")
-      .select("recovery_score, hrv_avg, rhr_bpm, sleep_dim_score, stress_score, snapshot_date, report_text")
-      .eq("user_id", user.id)
-      .gte("snapshot_date", twoDaysAgo)
-      .order("snapshot_date", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    snapshot = data ?? null;
+    const [snapshotResult, weeklyResult] = await Promise.all([
+      supabase
+        .from("daily_physiology_snapshot")
+        .select("recovery_score, hrv_avg, rhr_bpm, sleep_dim_score, stress_score, snapshot_date, report_text")
+        .eq("user_id", user.id)
+        .gte("snapshot_date", twoDaysAgo)
+        .order("snapshot_date", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from("weekly_reports")
+        .select("report_text, week_start, week_end, dias_verde, dias_amarelo, dias_laranja, dias_vermelho")
+        .eq("user_id", user.id)
+        .order("week_start", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+    snapshot = snapshotResult.data ?? null;
+    weeklyReport = weeklyResult.data ?? null;
   }
 
   const engineResult = snapshot
@@ -170,6 +181,25 @@ export default async function DashboardPage() {
           </div>
 
           <ReportPanel initialReport={snapshot.report_text ?? null} />
+
+          {weeklyReport && (
+            <section className="biometric-panel rounded-lg p-5 space-y-3">
+              <div className="flex items-center justify-between gap-4">
+                <p className="text-primary text-xs font-medium uppercase tracking-widest">
+                  Semana {new Date(weeklyReport.week_start + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })} – {new Date(weeklyReport.week_end + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}
+                </p>
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="text-green-500 font-semibold">{weeklyReport.dias_verde}🟢</span>
+                  <span className="text-yellow-400 font-semibold">{weeklyReport.dias_amarelo}🟡</span>
+                  <span className="text-orange-400 font-semibold">{weeklyReport.dias_laranja}🟠</span>
+                  <span className="text-red-500 font-semibold">{weeklyReport.dias_vermelho}🔴</span>
+                </div>
+              </div>
+              <div className="text-foreground text-sm leading-7 whitespace-pre-wrap">
+                {weeklyReport.report_text}
+              </div>
+            </section>
+          )}
         </>
       )}
     </main>
