@@ -1,19 +1,17 @@
-name: Morning Sync (07h BRT)
+name: Morning Sync (07h)
 
 on:
   schedule:
-    - cron: '0 10 * * *'
-  workflow_dispatch:
+    - cron: "0 10 * * *" # 07:00 BRT = 10:00 UTC
+  workflow_dispatch: # permite rodar manualmente
 
 jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      - name: Call sync endpoint
+      - name: Chamar endpoint de sync
         run: |
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-            -X POST https://health-monitor-web-sigma.vercel.app/api/oura/sync \
+          curl -s -X POST \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            -H "Content-Type: application/json")
-          echo "HTTP status: $STATUS"
-          [ "$STATUS" = "200" ] || exit 1
+            -H "Content-Type: application/json" \
+            "${{ secrets.APP_URL }}/api/oura/sync"
