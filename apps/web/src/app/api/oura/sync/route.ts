@@ -46,9 +46,7 @@ async function syncUser(userId: string, ouraToken: string, supabase: SupabaseCli
   const tomorrow = isoDateOffset(1);
   const today = isoDateOffset(0);
 
-  let readinessData: unknown, sleepData: unknown, sleepSessionData: unknown, stressData: unknown;
-
-  [readinessData, sleepData, sleepSessionData, stressData] = await Promise.all([
+  const [readinessData, sleepData, sleepSessionData, stressData] = await Promise.all([
     fetchOura("daily_readiness", ouraToken, yesterday, today),
     fetchOura("daily_sleep", ouraToken, yesterday, today),
     fetchOura("sleep", ouraToken, threeDaysAgo, tomorrow),
