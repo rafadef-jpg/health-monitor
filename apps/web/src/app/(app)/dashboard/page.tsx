@@ -102,13 +102,16 @@ export default async function DashboardPage() {
             })}
           </p>
         </div>
-        <Link
-          href="/settings/integrations"
-          className="text-muted-foreground hover:text-foreground flex shrink-0 items-center gap-1.5 text-xs transition"
-        >
-          <Settings className="size-3.5" />
-          Alterar token do Oura
-        </Link>
+        <div className="flex flex-col items-end gap-2">
+          <Link
+            href="/settings/integrations"
+            className="text-muted-foreground hover:text-foreground flex shrink-0 items-center gap-1.5 text-xs transition"
+          >
+            <Settings className="size-3.5" />
+            Alterar token do Oura
+          </Link>
+          <PushButton vapidPublicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ""} />
+        </div>
       </section>
 
       {!snapshot ? (
@@ -177,8 +180,7 @@ export default async function DashboardPage() {
             ))}
           </section>
 
-          <div className="flex items-center justify-between gap-4">
-            <PushButton vapidPublicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ""} />
+          <div className="flex justify-end">
             <SyncButton />
           </div>
 
