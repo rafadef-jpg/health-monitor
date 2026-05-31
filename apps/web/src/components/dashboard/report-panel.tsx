@@ -44,11 +44,11 @@ function renderBody(text: string) {
   }).filter(Boolean);
 }
 
-const SEMAPHORE_STYLE: Record<string, { bg: string; text: string; border: string }> = {
-  green:  { bg: "bg-green-50",  text: "text-green-700",  border: "border-green-100" },
-  yellow: { bg: "bg-yellow-50", text: "text-yellow-700", border: "border-yellow-100" },
-  orange: { bg: "bg-orange-50", text: "text-orange-600", border: "border-orange-100" },
-  red:    { bg: "bg-red-50",    text: "text-red-600",    border: "border-red-100" },
+const SEMAPHORE_STYLE: Record<string, { bg: string; text: string; border: string; dot: string; glow: string }> = {
+  green:  { bg: "bg-green-50",  text: "text-green-700",  border: "border-green-100", dot: "bg-green-400",  glow: "shadow-[0_0_12px_4px_rgba(74,222,128,0.5)]" },
+  yellow: { bg: "bg-yellow-50", text: "text-yellow-700", border: "border-yellow-100", dot: "bg-yellow-400", glow: "shadow-[0_0_12px_4px_rgba(250,204,21,0.5)]" },
+  orange: { bg: "bg-orange-50", text: "text-orange-600", border: "border-orange-100", dot: "bg-orange-400", glow: "shadow-[0_0_12px_4px_rgba(251,146,60,0.5)]" },
+  red:    { bg: "bg-red-50",    text: "text-red-600",    border: "border-red-100",    dot: "bg-red-400",    glow: "shadow-[0_0_12px_4px_rgba(248,113,113,0.5)]" },
 };
 
 export function ReportPanel({ initialReport, semaphore: semaphoreProp }: Props) {
@@ -107,7 +107,11 @@ export function ReportPanel({ initialReport, semaphore: semaphoreProp }: Props) 
       {/* Gancho */}
       <div className="p-5 pb-4">
         <div className="flex items-start justify-between gap-3">
-          <p className={`text-xl font-bold leading-snug ${style.text}`}>{hook}</p>
+          <div className="flex items-start gap-3 flex-1">
+            {/* Indicador de semáforo */}
+            <div className={`size-4 rounded-full shrink-0 mt-1.5 ${style.dot} ${style.glow}`} />
+            <p className={`text-xl font-bold leading-snug ${style.text}`}>{hook}</p>
+          </div>
           <button
             onClick={generate}
             disabled={state.status === "loading"}

@@ -1,6 +1,6 @@
 {
   "name": "Health Monitor",
-  "short_name": "Health",
+  "short_name": "Health Monitor",
   "description": "Seu monitor pessoal de saúde e recuperação.",
   "start_url": "/dashboard",
   "display": "standalone",
