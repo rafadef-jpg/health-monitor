@@ -46,4 +46,43 @@
   .metric-label {
     @apply text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400;
   }
+
+  /* ── Conquistas ──────────────────────────────────────── */
+  .achievements-hero {
+    background: linear-gradient(135deg, #1a0a2e 0%, #0d1b3e 50%, #1a0a2e 100%);
+    border: 1px solid rgba(139, 92, 246, 0.2);
+  }
+
+  .achievement-card {
+    background: #12091f;
+    border: 1px solid rgba(139, 92, 246, 0.15);
+  }
+
+  .achievement-unlocked {
+    background: linear-gradient(135deg, #1e0f35 0%, #160d2e 100%);
+    border-color: rgba(168, 85, 247, 0.4);
+    box-shadow: 0 0 20px rgba(168, 85, 247, 0.1);
+  }
+
+  .achievement-locked {
+    background: #0e0818;
+    border-color: rgba(100, 100, 120, 0.2);
+    opacity: 0.55;
+  }
+
+  .achievement-icon-active {
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.3), rgba(236, 72, 153, 0.3));
+    box-shadow: 0 4px 16px rgba(168, 85, 247, 0.2);
+  }
+
+  .achievement-icon-inactive {
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .achievement-name-active {
+    background: linear-gradient(90deg, #c084fc, #f472b6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
 }

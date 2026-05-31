@@ -8,6 +8,7 @@ import { SyncButton } from "@/components/dashboard/sync-button";
 import { ReportPanel } from "@/components/dashboard/report-panel";
 import { PushButton } from "@/components/dashboard/push-button";
 import { AchievementsRow } from "@/components/dashboard/achievements-row";
+import { CrueldadeMatinal } from "@/components/dashboard/crueldade-matinal";
 import { calcRecovery } from "@repo/physiology";
 
 type Snapshot = {
@@ -163,9 +164,6 @@ export default async function DashboardPage() {
                 dia {streak}
               </span>
             )}
-            <span className="text-[9px] font-black uppercase tracking-[0.15em] text-rose-500 bg-rose-50 border border-rose-100 px-2 py-0.5 rounded-full">
-              ☀️ Crueldade Matinal
-            </span>
           </div>
         </div>
         <div className="flex flex-col items-end gap-1.5">
@@ -210,6 +208,14 @@ export default async function DashboardPage() {
               </span>
             </section>
           )}
+
+          {/* Crueldade Matinal */}
+          <CrueldadeMatinal
+            semaphore={engineResult?.semaphore ?? "green"}
+            sleepScore={snapshot.sleep_dim_score}
+            stressScore={snapshot.stress_score}
+            streak={streak}
+          />
 
           {/* Cards métricas — estilo Oura */}
           <section className="grid grid-cols-2 gap-3">

@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { LogOut, LayoutDashboard, ClipboardList, BarChart2, Share2 } from "lucide-react";
+import { LogOut, LayoutDashboard, ClipboardList, BarChart2, Share2, Trophy } from "lucide-react";
 import { logoutAction } from "@/app/(auth)/login/actions";
 import { Button } from "@/components/ui/button";
 
@@ -12,6 +12,7 @@ const NAV = [
   { title: "Registrar", href: "/registrar", icon: ClipboardList },
   { title: "Histórico", href: "/historico", icon: BarChart2 },
   { title: "Semana", href: "/compartilhar", icon: Share2 },
+  { title: "Conquistas", href: "/conquistas", icon: Trophy },
 ];
 
 function PulseIcon() {
