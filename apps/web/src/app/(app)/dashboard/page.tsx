@@ -48,6 +48,7 @@ export default async function DashboardPage() {
   let snapshot: Snapshot | null = null;
   let weeklyReport: { report_text: string; week_start: string; week_end: string; dias_verde: number; dias_amarelo: number; dias_laranja: number; dias_vermelho: number } | null = null;
   let streak = 0;
+  let recentScores: { date: string; recovery_score: number | null }[] = [];
 
   if (user) {
     const supabase = createSupabaseServerClient(accessToken);
@@ -72,7 +73,7 @@ export default async function DashboardPage() {
         .maybeSingle(),
       supabase
         .from("daily_physiology_snapshot")
-        .select("snapshot_date")
+        .select("snapshot_date, recovery_score")
         .eq("user_id", user.id)
         .gte("snapshot_date", thirtyDaysAgo)
         .order("snapshot_date", { ascending: false }),
@@ -93,6 +94,7 @@ export default async function DashboardPage() {
       else break;
     }
     streak = count;
+    recentScores = (streakResult.data ?? []).map((d: { snapshot_date: string; recovery_score?: number | null }) => ({ date: d.snapshot_date, recovery_score: d.recovery_score ?? null })).reverse();
   }
 
   const engineResult = snapshot
@@ -172,7 +174,11 @@ export default async function DashboardPage() {
       ) : (
         <>
           {/* Relatório IA — primeiro e em destaque */}
-          <ReportPanel initialReport={snapshot.report_text ?? null} semaphore={engineResult?.semaphore ?? "green"} />
+          <ReportPanel
+            initialReport={snapshot.report_text ?? null}
+            semaphore={engineResult?.semaphore ?? "green"}
+            recentScores={recentScores.map(d => ({ date: d.date, score: d.recovery_score }))}
+          />
 
           {/* Recovery Score */}
           {engineResult && (
