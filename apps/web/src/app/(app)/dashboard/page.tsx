@@ -99,36 +99,40 @@ export default async function DashboardPage() {
     ? calcRecovery({ hrv_ms: snapshot.hrv_avg, rhr_bpm: snapshot.rhr_bpm, sleep_score: snapshot.sleep_dim_score })
     : null;
 
-  function scoreToLabel(score: number | null, thresholds: [number, string][]): string | null {
+  function scoreToLabel(score: number | null, thresholds: [number, string, string][]): { label: string; color: string } | null {
     if (score == null) return null;
-    for (const [min, label] of thresholds) if (score >= min) return label;
-    return thresholds[thresholds.length - 1][1];
+    for (const [min, label, color] of thresholds) if (score >= min) return { label, color };
+    const last = thresholds[thresholds.length - 1];
+    return { label: last[1], color: last[2] };
   }
 
   const metrics = [
     {
       title: "Coração",
-      value: scoreToLabel(snapshot?.hrv_avg ?? null, [[70,"Ótimo"],[55,"Normal"],[40,"Abaixo"],[0,"Baixo"]]),
+      value: scoreToLabel(snapshot?.hrv_avg ?? null, [[70,"Ótimo","text-green-500"],[55,"Normal","text-yellow-500"],[40,"Abaixo","text-orange-500"],[0,"Baixo","text-red-500"]]),
       sub: snapshot?.hrv_avg != null ? `${snapshot.hrv_avg} ms` : null,
       icon: Activity,
     },
     {
       title: "Sono",
-      value: scoreToLabel(snapshot?.sleep_dim_score ?? null, [[85,"Excelente"],[70,"Bom"],[55,"Regular"],[0,"Ruim"]]),
+      value: scoreToLabel(snapshot?.sleep_dim_score ?? null, [[85,"Excelente","text-green-500"],[70,"Bom","text-green-500"],[55,"Regular","text-yellow-500"],[0,"Ruim","text-red-500"]]),
       sub: null,
       icon: Moon,
     },
     {
       title: "Recuperação",
-      value: scoreToLabel(snapshot?.recovery_score ?? null, [[80,"Ótima"],[65,"Boa"],[50,"Regular"],[0,"Baixa"]]),
+      value: scoreToLabel(snapshot?.recovery_score ?? null, [[80,"Ótima","text-green-500"],[65,"Boa","text-yellow-500"],[50,"Regular","text-orange-500"],[0,"Baixa","text-red-500"]]),
       sub: null,
       icon: Zap,
     },
     {
       title: "Estresse",
-      value: snapshot?.stress_score != null
-        ? snapshot.stress_score === 0 ? "Tranquilo" : snapshot.stress_score < 30 ? "Leve" : snapshot.stress_score < 60 ? "Moderado" : "Alto"
-        : null,
+      value: snapshot?.stress_score != null ? (() => {
+        if (snapshot.stress_score === 0) return { label: "Tranquilo", color: "text-green-500" };
+        if (snapshot.stress_score! < 30) return { label: "Leve", color: "text-yellow-500" };
+        if (snapshot.stress_score! < 60) return { label: "Moderado", color: "text-orange-500" };
+        return { label: "Alto", color: "text-red-500" };
+      })() : null,
       sub: null,
       icon: Wind,
     },
@@ -198,7 +202,7 @@ export default async function DashboardPage() {
                 </div>
                 {metric.value ? (
                   <div>
-                    <p className="text-slate-800 text-xl font-bold">{metric.value}</p>
+                    <p className={`text-xl font-bold ${metric.value.color}`}>{metric.value.label}</p>
                     {metric.sub && <p className="text-slate-400 text-xs mt-0.5">{metric.sub}</p>}
                   </div>
                 ) : (
