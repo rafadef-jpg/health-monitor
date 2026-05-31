@@ -84,7 +84,7 @@ async function syncUser(userId: string, ouraToken: string, supabase: SupabaseCli
   if (snapshotError) {
     console.error("[oura/sync] snapshot error:", snapshotError.code, snapshotError.message);
   } else {
-    console.log("[oura/sync] snapshot salvo:", JSON.stringify(snapshot));
+    console.log("[oura/sync] snapshot salvo para:", userId);
   }
 
   await supabase
@@ -177,11 +177,14 @@ async function handleCronSync() {
 }
 
 export async function POST(request: Request) {
-  // — Cron path —
   const authHeader = request.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
 
-  if (cronSecret && authHeader === `Bearer ${cronSecret}`) {
+  // — Cron path — rejeita se secret não está configurado ou não bate
+  if (!cronSecret) {
+    return NextResponse.json({ error: "Não configurado." }, { status: 500 });
+  }
+  if (authHeader === `Bearer ${cronSecret}`) {
     return handleCronSync();
   }
 

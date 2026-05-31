@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import webpush from "web-push";
 
 webpush.setVapidDetails(
-  "mailto:287559830+rafadef-jpg@users.noreply.github.com",
+  process.env.VAPID_CONTACT_EMAIL ?? "mailto:admin@healthmonitor.app",
   process.env.VAPID_PUBLIC_KEY!,
   process.env.VAPID_PRIVATE_KEY!
 );
@@ -15,7 +15,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
   }
 
-  const { user_id, title, body, url } = await request.json();
+  const body_raw = await request.json();
+  const user_id = typeof body_raw.user_id === "string" ? body_raw.user_id : null;
+  const title = typeof body_raw.title === "string" ? body_raw.title.slice(0, 100) : "Health Monitor";
+  const body = typeof body_raw.body === "string" ? body_raw.body.slice(0, 200) : "Relatório pronto.";
+  const url = typeof body_raw.url === "string" ? body_raw.url.slice(0, 200) : "/dashboard";
+
+  if (!user_id) return NextResponse.json({ error: "user_id inválido." }, { status: 400 });
 
   const service = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
