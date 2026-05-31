@@ -38,7 +38,13 @@ export function PushButton({ vapidPublicKey }: { vapidPublicKey: string }) {
     }
   }
 
-  if (status === "unsupported") return null;
+  if (status === "unsupported") {
+    return (
+      <p className="text-xs text-muted-foreground">
+        Notificações não suportadas neste dispositivo
+      </p>
+    );
+  }
   if (status === "subscribed") {
     return (
       <div className="flex items-center gap-1.5 text-xs text-primary">
