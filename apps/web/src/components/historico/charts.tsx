@@ -52,7 +52,7 @@ function ChartCard({ title, children }: { title: string; children: React.ReactNo
 
 export function RecoveryChart({ data }: { data: DataPoint[] }) {
   return (
-    <ChartCard title="Recovery Score">
+    <ChartCard title="Como você esteve">
       <ResponsiveContainer width="100%" height={180}>
         <LineChart data={data} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} />
@@ -97,7 +97,7 @@ export function HrvChart({ data }: { data: DataPoint[] }) {
   const avg = values.length ? Math.round(values.reduce((a, b) => a + b, 0) / values.length) : null;
 
   return (
-    <ChartCard title={`HRV${avg ? ` — média ${avg} ms` : ""}`}>
+    <ChartCard title={`Coração${avg ? ` — média ${avg} ms` : ""}`}>
       <ResponsiveContainer width="100%" height={150}>
         <LineChart data={data} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} />
@@ -121,7 +121,7 @@ export function RhrChart({ data }: { data: DataPoint[] }) {
   const avg = values.length ? Math.round(values.reduce((a, b) => a + b, 0) / values.length) : null;
 
   return (
-    <ChartCard title={`FC em repouso${avg ? ` — média ${avg} bpm` : ""}`}>
+    <ChartCard title={`Coração em descanso${avg ? ` — média ${avg} bpm` : ""}`}>
       <ResponsiveContainer width="100%" height={150}>
         <LineChart data={data} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} />

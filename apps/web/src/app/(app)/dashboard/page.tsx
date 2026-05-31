@@ -116,13 +116,13 @@ export default async function DashboardPage() {
     {
       title: "Sono",
       value: scoreToLabel(snapshot?.sleep_dim_score ?? null, [[85,"Excelente","text-green-500"],[70,"Bom","text-green-500"],[55,"Regular","text-yellow-500"],[0,"Ruim","text-red-500"]]),
-      sub: null,
+      sub: snapshot?.sleep_dim_score != null ? `nota ${snapshot.sleep_dim_score}` : null,
       icon: Moon,
     },
     {
       title: "Recuperação",
       value: scoreToLabel(snapshot?.recovery_score ?? null, [[80,"Ótima","text-green-500"],[65,"Boa","text-yellow-500"],[50,"Regular","text-orange-500"],[0,"Baixa","text-red-500"]]),
-      sub: null,
+      sub: snapshot?.recovery_score != null ? `nota ${snapshot.recovery_score}` : null,
       icon: Zap,
     },
     {
@@ -133,7 +133,7 @@ export default async function DashboardPage() {
         if (snapshot.stress_score! < 60) return { label: "Moderado", color: "text-orange-500" };
         return { label: "Alto", color: "text-red-500" };
       })() : null,
-      sub: null,
+      sub: snapshot?.stress_score != null && snapshot.stress_score > 0 ? `${snapshot.stress_score} min` : null,
       icon: Wind,
     },
   ];
@@ -178,7 +178,7 @@ export default async function DashboardPage() {
           {engineResult && (
             <section className="biometric-panel rounded-2xl p-5 flex items-center justify-between gap-4">
               <div>
-                <p className="text-slate-400 text-xs font-medium uppercase tracking-wider mb-1">Como você está</p>
+                <p className="metric-label mb-1">Como você está</p>
                 <p className={`text-5xl font-black ${SEMAPHORE_COLOR[engineResult.semaphore]}`}>
                   {engineResult.score}
                 </p>
@@ -190,23 +190,23 @@ export default async function DashboardPage() {
             </section>
           )}
 
-          {/* Cards métricas */}
+          {/* Cards métricas — estilo Oura */}
           <section className="grid grid-cols-2 gap-3">
             {metrics.map((metric) => (
-              <article key={metric.title} className="biometric-panel rounded-2xl p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="bg-sky-50 text-sky-500 flex size-8 items-center justify-center rounded-lg">
-                    <metric.icon className="size-4" />
+              <article key={metric.title} className="biometric-panel rounded-2xl p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="bg-slate-50 text-slate-400 flex size-7 items-center justify-center rounded-lg">
+                    <metric.icon className="size-3.5" />
                   </div>
-                  <p className="text-slate-400 text-xs font-medium">{metric.title}</p>
+                  <p className="metric-label">{metric.title}</p>
                 </div>
                 {metric.value ? (
                   <div>
-                    <p className={`text-xl font-bold ${metric.value.color}`}>{metric.value.label}</p>
-                    {metric.sub && <p className="text-slate-400 text-xs mt-0.5">{metric.sub}</p>}
+                    <p className={`text-2xl font-bold tracking-tight ${metric.value.color}`}>{metric.value.label}</p>
+                    {metric.sub && <p className="text-slate-400 text-xs mt-0.5 font-medium">{metric.sub}</p>}
                   </div>
                 ) : (
-                  <p className="text-slate-300 text-lg">—</p>
+                  <p className="text-slate-200 text-xl font-bold">—</p>
                 )}
               </article>
             ))}
