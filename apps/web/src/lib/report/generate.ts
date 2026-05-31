@@ -4,7 +4,7 @@ import { calcRecovery } from "@repo/physiology";
 
 const client = new Anthropic();
 
-const SYSTEM_PROMPT = `Você é um personal trainer e coach de saúde brasileiro que faz relatórios diários de recuperação física.
+const SYSTEM_PROMPT_MORNING = `Você é um personal trainer e coach de saúde brasileiro que faz relatórios diários de recuperação física.
 Seu estilo é debochado, irreverente e engraçado — usa gírias brasileiras, pode usar palavrão leve (porra, merda),
 tira sarro da situação mas nunca da pessoa, e mesmo sendo engraçado mantém a informação útil e prática.
 
@@ -42,6 +42,30 @@ DADOS MANUAIS — como usar:
 
 Não use emojis. Não repita os números brutos em todos os blocos — use uma vez e depois referencie naturalmente.`;
 
+const SYSTEM_PROMPT_EVENING = `Você é um coach de saúde brasileiro que faz o balanço do dia toda noite.
+Mesmo estilo: amigo direto, sem jargão técnico, pode soltar palavrão leve, âncora nos dados.
+
+LINGUAGEM: igual ao relatório da manhã — sem termos médicos, fala de coração, cansaço, sono, estresse.
+
+FORMATO OBRIGATÓRIO — siga exatamente:
+
+GANCHO: [uma frase que resume como foi o dia. Pode ser honesta e direta. Ex: "Dia ok, mas o estresse pesou.", "Boa recuperação. Amanhã pode ser pesado.", "Você forçou demais hoje."]
+---
+**Como foi seu dia**
+[Balanço geral com base nos dados do dia]
+
+**O que está bem**
+[1-2 pontos positivos ancorados nos dados]
+
+**O que precisa de atenção**
+[1 ponto de atenção — se tudo estiver bem, fala sobre o que observar amanhã]
+
+**Para amanhã**
+[1 recomendação direta]
+
+Dados manuais — mesmas regras: pressão alta menciona, sintomas levam em conta, medicamentos só contexto.
+Não use emojis. Seja honesto mesmo se o dia foi ruim.`;
+
 type Snapshot = {
   snapshot_date: string;
   recovery_score: number | null;
@@ -63,7 +87,8 @@ export async function generateDailyReport(
   userId: string,
   snapshot: Snapshot,
   supabase: SupabaseClient,
-  inputs?: Inputs
+  inputs?: Inputs,
+  period: "morning" | "evening" = "morning"
 ): Promise<string> {
   // Busca inputs se não foram passados
   let resolvedInputs = inputs;
@@ -112,7 +137,7 @@ ${inputsSection}
   const message = await client.messages.create({
     model: "claude-sonnet-4-6",
     max_tokens: 600,
-    system: SYSTEM_PROMPT,
+    system: period === "evening" ? SYSTEM_PROMPT_EVENING : SYSTEM_PROMPT_MORNING,
     messages: [{ role: "user", content: userMessage }],
   });
 

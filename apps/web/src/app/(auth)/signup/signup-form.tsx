@@ -13,7 +13,7 @@ const initialState: SignupState = {};
 export function SignupForm() {
   const searchParams = useSearchParams();
   const [state, formAction, isPending] = useActionState(signupAction, initialState);
-  const next = searchParams.get("next") ?? "/dashboard";
+  const next = searchParams.get("next") ?? "/bem-vindo";
 
   return (
     <form action={formAction} className="space-y-4">

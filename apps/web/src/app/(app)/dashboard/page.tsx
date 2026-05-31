@@ -47,11 +47,14 @@ export default async function DashboardPage() {
 
   let snapshot: Snapshot | null = null;
   let weeklyReport: { report_text: string; week_start: string; week_end: string; dias_verde: number; dias_amarelo: number; dias_laranja: number; dias_vermelho: number } | null = null;
+  let streak = 0;
 
   if (user) {
     const supabase = createSupabaseServerClient(accessToken);
     const twoDaysAgo = new Date(Date.now() - 2 * 86400000).toISOString().slice(0, 10);
-    const [snapshotResult, weeklyResult] = await Promise.all([
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+
+    const [snapshotResult, weeklyResult, streakResult] = await Promise.all([
       supabase
         .from("daily_physiology_snapshot")
         .select("recovery_score, hrv_avg, rhr_bpm, sleep_dim_score, stress_score, snapshot_date, report_text")
@@ -67,9 +70,29 @@ export default async function DashboardPage() {
         .order("week_start", { ascending: false })
         .limit(1)
         .maybeSingle(),
+      supabase
+        .from("daily_physiology_snapshot")
+        .select("snapshot_date")
+        .eq("user_id", user.id)
+        .gte("snapshot_date", thirtyDaysAgo)
+        .order("snapshot_date", { ascending: false }),
     ]);
+
     snapshot = snapshotResult.data ?? null;
     weeklyReport = weeklyResult.data ?? null;
+
+    // Calcula streak de dias consecutivos
+    const dates = (streakResult.data ?? []).map((d: { snapshot_date: string }) => d.snapshot_date);
+    let count = 0;
+    let expected = new Date();
+    expected.setHours(12, 0, 0, 0);
+    for (const date of dates) {
+      const d = new Date(date + "T12:00:00");
+      const diff = Math.round((expected.getTime() - d.getTime()) / 86400000);
+      if (diff <= 1) { count++; expected = d; }
+      else break;
+    }
+    streak = count;
   }
 
   const engineResult = snapshot
@@ -91,7 +114,14 @@ export default async function DashboardPage() {
           <p className="text-slate-400 text-sm">
             {new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}
           </p>
-          <h1 className="text-slate-800 text-2xl font-bold">Hoje</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-slate-800 text-2xl font-bold">Hoje</h1>
+            {streak > 0 && (
+              <span className="text-xs font-semibold text-sky-500 bg-sky-50 px-2 py-0.5 rounded-full">
+                dia {streak}
+              </span>
+            )}
+          </div>
         </div>
         <div className="flex flex-col items-end gap-1.5">
           <Link href="/settings/integrations" className="text-slate-400 hover:text-slate-600 flex items-center gap-1 text-xs transition">

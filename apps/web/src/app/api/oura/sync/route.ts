@@ -144,7 +144,9 @@ async function handleCronSync() {
         .limit(1)
         .maybeSingle();
       if (!snapshot) return;
-      await generateDailyReport(i.user_id, snapshot, service);
+      const hour = new Date().getUTCHours();
+      const period = hour >= 20 ? "evening" : "morning"; // 20h UTC+ = noite BRT
+      await generateDailyReport(i.user_id, snapshot, service, undefined, period);
     })
   );
 
