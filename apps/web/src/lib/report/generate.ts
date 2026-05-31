@@ -40,7 +40,8 @@ DADOS MANUAIS — como usar:
 - Medicamentos: contexto apenas — não comenta nem recomenda nada sobre eles.
 - Se dados manuais não foram registrados: não menciona a ausência.
 
-Não use emojis. Não repita os números brutos em todos os blocos — use uma vez e depois referencie naturalmente.`;
+PROIBIDO citar números brutos (ms, bpm, /100, %). Fale em comparações: "abaixo do seu normal", "quase perfeito", "bem acima", "dentro do esperado".
+Não use emojis. Máximo 2 frases por parágrafo.`;
 
 const SYSTEM_PROMPT_EVENING = `Você é um coach de saúde brasileiro que faz o balanço do dia toda noite.
 Mesmo estilo: amigo direto, sem jargão técnico, pode soltar palavrão leve, âncora nos dados.
@@ -64,7 +65,8 @@ GANCHO: [uma frase que resume como foi o dia. Pode ser honesta e direta. Ex: "Di
 [1 recomendação direta]
 
 Dados manuais — mesmas regras: pressão alta menciona, sintomas levam em conta, medicamentos só contexto.
-Não use emojis. Seja honesto mesmo se o dia foi ruim.`;
+PROIBIDO citar números brutos (ms, bpm, /100, %). Fale em comparações: "abaixo do normal", "quase perfeito", "dentro do esperado".
+Não use emojis. Seja honesto mesmo se o dia foi ruim. Máximo 2 frases por parágrafo.`;
 
 type Snapshot = {
   snapshot_date: string;

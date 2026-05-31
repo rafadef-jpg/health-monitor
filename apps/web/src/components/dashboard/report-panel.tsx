@@ -11,30 +11,44 @@ type State =
   | { status: "error"; text: string; message: string };
 
 function parseReport(text: string): { hook: string; body: string } {
-  // Tenta formato GANCHO: ... \n---\n
-  const match = text.match(/GANCHO:\s*(.+?)(?:\n---|\n\n)/s);
+  const match = text.match(/GANCHO:\s*(.+?)(?=\n---|\n\n\*\*)/s);
   if (match) {
     const hook = match[1].trim();
-    const afterHook = text.slice(text.indexOf(match[0]) + match[0].length).trim();
-    const body = afterHook.replace(/^---\s*/, "").trim();
-    return { hook, body };
+    const rest = text.slice(text.indexOf(match[0]) + match[0].length).replace(/^[\s\n]*---[\s\n]*/, "").trim();
+    return { hook, body: rest };
   }
-  // fallback: primeira linha não vazia como gancho
   const lines = text.split("\n").filter((l) => l.trim());
+  const firstBold = lines.findIndex((l) => l.startsWith("**"));
+  if (firstBold > 0) {
+    return { hook: lines.slice(0, firstBold).join(" ").replace(/^\*+|\*+$/g, "").trim(), body: lines.slice(firstBold).join("\n") };
+  }
   return { hook: lines[0].replace(/^\*+|\*+$/g, "").trim(), body: lines.slice(1).join("\n").trim() };
 }
 
-const SEMAPHORE_BG: Record<string, string> = {
-  green: "bg-green-50 border-green-100",
-  yellow: "bg-yellow-50 border-yellow-100",
-  orange: "bg-orange-50 border-orange-100",
-  red: "bg-red-50 border-red-100",
-};
-const SEMAPHORE_TEXT: Record<string, string> = {
-  green: "text-green-700",
-  yellow: "text-yellow-700",
-  orange: "text-orange-600",
-  red: "text-red-600",
+function renderBody(text: string) {
+  const blocks = text.split(/\n{2,}/);
+  return blocks.map((block, i) => {
+    const heading = block.match(/^\*\*(.+?)\*\*/);
+    if (heading) {
+      const rest = block.replace(/^\*\*.+?\*\*\s*\n?/, "").trim();
+      return (
+        <div key={i} className="space-y-1.5">
+          <p className="text-slate-500 text-xs font-semibold uppercase tracking-wider">{heading[1]}</p>
+          {rest && <p className="text-slate-700 text-base leading-relaxed">{rest}</p>}
+        </div>
+      );
+    }
+    const clean = block.replace(/\*\*(.+?)\*\*/g, "$1").trim();
+    if (!clean) return null;
+    return <p key={i} className="text-slate-700 text-base leading-relaxed">{clean}</p>;
+  }).filter(Boolean);
+}
+
+const SEMAPHORE_STYLE: Record<string, { bg: string; text: string; border: string }> = {
+  green:  { bg: "bg-green-50",  text: "text-green-700",  border: "border-green-100" },
+  yellow: { bg: "bg-yellow-50", text: "text-yellow-700", border: "border-yellow-100" },
+  orange: { bg: "bg-orange-50", text: "text-orange-600", border: "border-orange-100" },
+  red:    { bg: "bg-red-50",    text: "text-red-600",    border: "border-red-100" },
 };
 
 export function ReportPanel({ initialReport, semaphore: semaphoreProp }: Props) {
@@ -44,6 +58,7 @@ export function ReportPanel({ initialReport, semaphore: semaphoreProp }: Props) 
   });
   const [expanded, setExpanded] = useState(false);
   const semaphore = semaphoreProp ?? "green";
+  const style = SEMAPHORE_STYLE[semaphore] ?? SEMAPHORE_STYLE.green;
 
   async function generate() {
     setState((prev) => ({ ...prev, status: "loading" }));
@@ -67,9 +82,9 @@ export function ReportPanel({ initialReport, semaphore: semaphoreProp }: Props) 
 
   if (state.status === "loading" && !state.text) {
     return (
-      <div className="biometric-panel rounded-2xl p-6 animate-pulse">
-        <div className="h-7 w-2/3 bg-slate-100 rounded-lg mb-2" />
-        <div className="h-4 w-1/3 bg-slate-100 rounded" />
+      <div className={`rounded-2xl border p-6 space-y-3 ${style.bg} ${style.border}`}>
+        <div className="h-7 w-3/4 bg-white/60 rounded-lg animate-pulse" />
+        <div className="h-4 w-1/2 bg-white/60 rounded animate-pulse" />
       </div>
     );
   }
@@ -78,7 +93,7 @@ export function ReportPanel({ initialReport, semaphore: semaphoreProp }: Props) 
     return (
       <div className="biometric-panel rounded-2xl p-6 space-y-2">
         <p className="text-red-500 text-sm">{state.message}</p>
-        <button onClick={generate} className="text-primary text-sm underline">Tentar novamente</button>
+        <button onClick={generate} className="text-sky-500 text-sm underline">Tentar novamente</button>
       </div>
     );
   }
@@ -86,39 +101,37 @@ export function ReportPanel({ initialReport, semaphore: semaphoreProp }: Props) 
   if (!state.text) return null;
 
   const { hook, body } = parseReport(state.text);
-  const bgClass = SEMAPHORE_BG[semaphore] ?? SEMAPHORE_BG.green;
-  const textClass = SEMAPHORE_TEXT[semaphore] ?? SEMAPHORE_TEXT.green;
 
   return (
-    <div className={`rounded-2xl border p-6 space-y-4 ${bgClass}`}>
-      <div className="flex items-start justify-between gap-3">
-        <p className={`text-2xl font-bold leading-tight ${textClass}`}>{hook}</p>
+    <div className={`rounded-2xl border ${style.bg} ${style.border} overflow-hidden`}>
+      {/* Gancho */}
+      <div className="p-5 pb-4">
+        <div className="flex items-start justify-between gap-3">
+          <p className={`text-xl font-bold leading-snug ${style.text}`}>{hook}</p>
+          <button
+            onClick={generate}
+            disabled={state.status === "loading"}
+            className="text-slate-300 hover:text-slate-500 transition shrink-0 mt-0.5"
+            title="Atualizar"
+          >
+            <RefreshCw className={`size-4 ${state.status === "loading" ? "animate-spin" : ""}`} />
+          </button>
+        </div>
+
         <button
-          onClick={generate}
-          disabled={state.status === "loading"}
-          className="text-slate-300 hover:text-slate-500 transition shrink-0 mt-1"
-          title="Atualizar"
+          onClick={() => setExpanded((v) => !v)}
+          className={`flex items-center gap-1 mt-3 text-sm font-medium ${style.text} opacity-60 hover:opacity-100 transition`}
         >
-          <RefreshCw className={`size-4 ${state.status === "loading" ? "animate-spin" : ""}`} />
+          {expanded ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+          {expanded ? "Fechar" : "Ver análise completa"}
         </button>
       </div>
 
-      {body && (
-        <>
-          <button
-            onClick={() => setExpanded((v) => !v)}
-            className={`flex items-center gap-1.5 text-sm font-medium ${textClass} opacity-70 hover:opacity-100 transition`}
-          >
-            {expanded ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
-            {expanded ? "Fechar análise" : "Ver análise completa"}
-          </button>
-
-          {expanded && (
-            <div className="text-sm leading-7 text-slate-700 whitespace-pre-wrap border-t border-current/10 pt-4">
-              {body}
-            </div>
-          )}
-        </>
+      {/* Análise expandida */}
+      {expanded && body && (
+        <div className="bg-white/70 border-t border-white/80 px-5 py-5 space-y-5">
+          {renderBody(body)}
+        </div>
       )}
     </div>
   );
