@@ -25,7 +25,6 @@ function parseReport(text: string): Parsed {
   const word = wordMatch?.[1]?.trim() ?? "";
   const phrase = phraseMatch?.[1]?.trim() ?? "";
 
-  // fallback: se não tem PALAVRA/FRASE, usa gancho antigo
   if (!word) {
     const ganchoMatch = text.match(/GANCHO:\s*([\s\S]+?)(?:\s*---|\n\n(?=\*\*))/);
     const hook = ganchoMatch?.[1]?.replace(/\s*---\s*$/, "").trim() ?? text.split("\n")[0];
@@ -49,17 +48,17 @@ function renderBody(text: string) {
         </div>
       );
     }
-    const clean = block.replace(/^[-–•]\s*/gm, "").replace(/\*\*(.+?)\*\*/g, "$1").trim();
+    const clean = block.replace(/^[-]+\s*/gm, "").replace(/\*\*(.+?)\*\*/g, "$1").trim();
     if (!clean) return null;
     return <p key={i} className="text-slate-700 text-[15px] leading-relaxed">{clean}</p>;
   }).filter(Boolean);
 }
 
-const SEMAPHORE_STYLE: Record<string, { bg: string; word: string; phrase: string; chart: string; border: string }> = {
-  green:  { bg: "bg-gradient-to-b from-green-50 to-white",  word: "text-green-600",  phrase: "text-green-700/70", chart: "#22c55e", border: "border-green-100" },
-  yellow: { bg: "bg-gradient-to-b from-yellow-50 to-white", word: "text-yellow-600", phrase: "text-yellow-700/70", chart: "#eab308", border: "border-yellow-100" },
-  orange: { bg: "bg-gradient-to-b from-orange-50 to-white", word: "text-orange-500", phrase: "text-orange-600/70", chart: "#f97316", border: "border-orange-100" },
-  red:    { bg: "bg-gradient-to-b from-red-50 to-white",    word: "text-red-500",    phrase: "text-red-600/70",   chart: "#ef4444", border: "border-red-100" },
+const SEMAPHORE_STYLE: Record<string, { bg: string; word: string; phrase: string; chart: string; border: string; dot: string; label: string }> = {
+  green:  { bg: "bg-gradient-to-b from-green-50 to-white",  word: "text-green-600",  phrase: "text-green-700/70",  chart: "#22c55e", border: "border-green-100",  dot: "bg-green-400",  label: "Otimo" },
+  yellow: { bg: "bg-gradient-to-b from-yellow-50 to-white", word: "text-yellow-600", phrase: "text-yellow-700/70", chart: "#eab308", border: "border-yellow-100", dot: "bg-yellow-400", label: "Regular" },
+  orange: { bg: "bg-gradient-to-b from-orange-50 to-white", word: "text-orange-500", phrase: "text-orange-600/70", chart: "#f97316", border: "border-orange-100", dot: "bg-orange-400", label: "Atencao" },
+  red:    { bg: "bg-gradient-to-b from-red-50 to-white",    word: "text-red-500",    phrase: "text-red-600/70",    chart: "#ef4444", border: "border-red-100",    dot: "bg-red-400",    label: "Critico" },
 };
 
 export function ReportPanel({ initialReport, semaphore: semaphoreProp, recentScores = [] }: Props) {
@@ -116,7 +115,6 @@ export function ReportPanel({ initialReport, semaphore: semaphoreProp, recentSco
 
   return (
     <div className={`rounded-3xl border ${style.border} ${style.bg} overflow-hidden`}>
-      {/* Área principal — estilo Oura */}
       <div className="px-6 pt-8 pb-5 text-center space-y-2 relative">
         <button
           onClick={generate}
@@ -126,6 +124,12 @@ export function ReportPanel({ initialReport, semaphore: semaphoreProp, recentSco
           <RefreshCw className={`size-4 ${state.status === "loading" ? "animate-spin" : ""}`} />
         </button>
 
+        {/* Farol */}
+        <div className="flex items-center justify-center gap-1.5">
+          <span className={`size-2.5 rounded-full ${style.dot}`} />
+          <span className={`text-xs font-bold uppercase tracking-widest ${style.word}`}>{style.label}</span>
+        </div>
+
         {/* Palavra grande */}
         <p className={`text-5xl font-black tracking-tight ${style.word}`} style={{ fontFamily: "var(--font-inter), system-ui" }}>
           {word}
@@ -134,11 +138,11 @@ export function ReportPanel({ initialReport, semaphore: semaphoreProp, recentSco
         {/* Frase */}
         {phrase && (
           <p className={`text-base leading-snug font-medium ${style.phrase} max-w-xs mx-auto`}>
-            {phrase}
+            &quot;{phrase}&quot;
           </p>
         )}
 
-        {/* Mini gráfico sparkline dos últimos dias */}
+        {/* Sparkline */}
         {chartData.length >= 2 && (
           <div className="mt-3 h-14 w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -169,18 +173,18 @@ export function ReportPanel({ initialReport, semaphore: semaphoreProp, recentSco
         )}
       </div>
 
-      {/* Botão expandir */}
+      {/* Botao expandir */}
       <div className="border-t border-white/60 px-6 py-3">
         <button
           onClick={() => setExpanded(v => !v)}
           className={`flex items-center justify-center gap-1.5 w-full text-sm font-semibold ${style.phrase} hover:opacity-100 opacity-70 transition`}
         >
           {expanded ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
-          {expanded ? "Fechar análise" : "Saiba mais"}
+          {expanded ? "Fechar analise" : "Saiba mais"}
         </button>
       </div>
 
-      {/* Análise completa */}
+      {/* Analise completa */}
       {expanded && body && (
         <div className="bg-white/80 border-t border-white/60 px-6 py-5 space-y-5">
           {renderBody(body)}
