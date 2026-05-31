@@ -4,6 +4,7 @@ import { AUTH_ACCESS_COOKIE } from "@/lib/auth/cookies";
 import { getUserFromAccessToken } from "@/lib/auth/session";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { InputsForm } from "./inputs-form";
+import { WorkoutForm } from "./workout-form";
 
 export default async function RegistrarPage() {
   const cookieStore = await cookies();
@@ -11,17 +12,27 @@ export default async function RegistrarPage() {
   const user = await getUserFromAccessToken(accessToken);
 
   let existing = null;
+  let existingWorkout = null;
 
   if (user) {
     const supabase = createSupabaseServerClient(accessToken);
     const today = new Date().toISOString().slice(0, 10);
-    const { data } = await supabase
-      .from("daily_inputs")
-      .select("pressao_sistolica, pressao_diastolica, medicamentos, sintomas, sentimento")
-      .eq("user_id", user.id)
-      .eq("input_date", today)
-      .maybeSingle();
-    existing = data ?? null;
+    const [inputsResult, workoutResult] = await Promise.all([
+      supabase
+        .from("daily_inputs")
+        .select("pressao_sistolica, pressao_diastolica, medicamentos, sintomas, sentimento")
+        .eq("user_id", user.id)
+        .eq("input_date", today)
+        .maybeSingle(),
+      supabase
+        .from("workout_sessions")
+        .select("exercises, notes, duration_minutes")
+        .eq("user_id", user.id)
+        .eq("session_date", today)
+        .maybeSingle(),
+    ]);
+    existing = inputsResult.data ?? null;
+    existingWorkout = workoutResult.data ?? null;
   }
 
   return (
@@ -29,9 +40,9 @@ export default async function RegistrarPage() {
       <section className="flex items-start gap-4">
         <div className="space-y-2">
           <p className="text-primary text-sm font-medium uppercase tracking-[0.18em]">Registrar</p>
-          <h1 className="text-foreground text-2xl font-semibold sm:text-3xl">Como está hoje</h1>
+          <h1 className="text-foreground text-2xl font-semibold sm:text-3xl">Como esta hoje</h1>
           <p className="text-muted-foreground max-w-2xl text-sm leading-6 sm:text-base">
-            Esses dados entram no relatório da IA e deixam a análise mais precisa.
+            Esses dados entram no relatorio da IA e deixam a analise mais precisa.
           </p>
         </div>
       </section>
@@ -39,11 +50,13 @@ export default async function RegistrarPage() {
       {existing && (
         <div className="flex items-center gap-2 rounded-lg border border-primary/25 bg-primary/10 px-4 py-2">
           <ClipboardList className="size-4 text-primary shrink-0" />
-          <p className="text-primary text-sm">Você já registrou dados hoje. Edite abaixo se precisar atualizar.</p>
+          <p className="text-primary text-sm">Voce ja registrou dados hoje. Edite abaixo se precisar atualizar.</p>
         </div>
       )}
 
       <InputsForm existing={existing} />
+
+      <WorkoutForm existing={existingWorkout} />
     </main>
   );
 }
