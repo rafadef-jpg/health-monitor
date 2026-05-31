@@ -4,26 +4,26 @@
 
 @layer base {
   :root {
-    --background: 195 33% 3%;
-    --foreground: 180 20% 96%;
-    --card: 196 28% 6%;
-    --card-foreground: 180 20% 96%;
-    --popover: 196 28% 6%;
-    --popover-foreground: 180 20% 96%;
-    --primary: 162 89% 52%;
-    --primary-foreground: 174 100% 6%;
-    --secondary: 210 18% 12%;
-    --secondary-foreground: 180 20% 96%;
-    --muted: 205 16% 16%;
-    --muted-foreground: 184 12% 68%;
-    --accent: 193 84% 54%;
-    --accent-foreground: 195 33% 3%;
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 199 89% 48%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 199 89% 48%;
+    --accent-foreground: 0 0% 100%;
     --destructive: 0 72% 51%;
-    --destructive-foreground: 180 20% 96%;
-    --border: 184 18% 18%;
-    --input: 184 18% 18%;
-    --ring: 162 89% 52%;
-    --radius: 0.5rem;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 199 89% 48%;
+    --radius: 0.75rem;
   }
 
   * {
@@ -32,19 +32,11 @@
 
   body {
     @apply bg-background text-foreground min-h-screen font-sans antialiased;
-    background-image:
-      linear-gradient(hsl(var(--primary) / 0.035) 1px, transparent 1px),
-      linear-gradient(90deg, hsl(var(--primary) / 0.035) 1px, transparent 1px),
-      radial-gradient(circle at top left, hsl(var(--primary) / 0.14), transparent 32rem);
-    background-size:
-      48px 48px,
-      48px 48px,
-      auto;
   }
 }
 
 @layer utilities {
   .biometric-panel {
-    @apply border-primary/15 bg-card/70 shadow-biometric border backdrop-blur-xl;
+    @apply bg-white border border-slate-100 shadow-sm;
   }
 }

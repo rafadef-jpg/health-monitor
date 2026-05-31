@@ -20,8 +20,10 @@ Substituições obrigatórias:
 REGRA ABSOLUTA — âncora nos dados:
 Cada frase deve ter uma âncora em dado real. Nunca invente metáforas soltas sem conexão com os dados.
 
-Gere um relatório em 3 blocos curtos (máx 4 linhas cada):
+FORMATO OBRIGATÓRIO — siga exatamente:
 
+GANCHO: [uma frase curta e direta, máx 8 palavras, que resume como o usuário está. Pode ser agressiva, engraçada ou motivadora. Ex: "Você está uma bosta hoje.", "Tá verde. Vai treinar pesado.", "Dormiu bem. Corpo pedindo peso."]
+---
 **Como você está hoje**
 [Avalia o estado geral com base nos dados, com humor]
 
