@@ -151,6 +151,26 @@ async function handleCronSync() {
   const reportsOk = reportResults.filter((r) => r.status === "fulfilled").length;
   console.log(`[oura/sync] relatórios gerados: ${reportsOk}/${integrations.length}`);
 
+  // Envia push notification para cada usuário
+  const appUrl = process.env.APP_URL ?? "";
+  await Promise.allSettled(
+    integrations.map((i: { user_id: string }) =>
+      fetch(`${appUrl}/api/push/send`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.CRON_SECRET}`,
+        },
+        body: JSON.stringify({
+          user_id: i.user_id,
+          title: "Relatório pronto",
+          body: "Seu relatório de hoje está no app.",
+          url: "/dashboard",
+        }),
+      })
+    )
+  );
+
   return NextResponse.json({ synced: ok, total: integrations.length, reports: reportsOk });
 }
 

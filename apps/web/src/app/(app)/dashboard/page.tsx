@@ -6,6 +6,7 @@ import { getUserFromAccessToken } from "@/lib/auth/session";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { SyncButton } from "@/components/dashboard/sync-button";
 import { ReportPanel } from "@/components/dashboard/report-panel";
+import { PushButton } from "@/components/dashboard/push-button";
 import { calcRecovery } from "@repo/physiology";
 
 type Snapshot = {
@@ -176,7 +177,8 @@ export default async function DashboardPage() {
             ))}
           </section>
 
-          <div className="flex justify-end">
+          <div className="flex items-center justify-between gap-4">
+            <PushButton vapidPublicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ""} />
             <SyncButton />
           </div>
 
