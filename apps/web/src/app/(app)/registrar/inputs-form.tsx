@@ -144,7 +144,6 @@ export function InputsForm({ existing }: Props) {
               ref={fileInputRef}
               type="file"
               accept="image/*"
-              capture="environment"
               className="sr-only"
               onChange={handlePhotoChange}
             />

@@ -13,4 +13,8 @@ export const mainNavigation: NavItem[] = [
     title: "Histórico",
     href: "/historico",
   },
+  {
+    title: "Semana",
+    href: "/compartilhar",
+  },
 ];
