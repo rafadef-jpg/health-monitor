@@ -7,6 +7,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { SyncButton } from "@/components/dashboard/sync-button";
 import { ReportPanel } from "@/components/dashboard/report-panel";
 import { PushButton } from "@/components/dashboard/push-button";
+import { AchievementsRow } from "@/components/dashboard/achievements-row";
 import { calcRecovery } from "@repo/physiology";
 
 type Snapshot = {
@@ -49,13 +50,14 @@ export default async function DashboardPage() {
   let weeklyReport: { report_text: string; week_start: string; week_end: string; dias_verde: number; dias_amarelo: number; dias_laranja: number; dias_vermelho: number } | null = null;
   let streak = 0;
   let recentScores: { date: string; recovery_score: number | null }[] = [];
+  let achievements: { achievement_id: string; unlocked_at: string }[] = [];
 
   if (user) {
     const supabase = createSupabaseServerClient(accessToken);
     const twoDaysAgo = new Date(Date.now() - 2 * 86400000).toISOString().slice(0, 10);
     const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
 
-    const [snapshotResult, weeklyResult, streakResult] = await Promise.all([
+    const [snapshotResult, weeklyResult, streakResult, achievementsResult] = await Promise.all([
       supabase
         .from("daily_physiology_snapshot")
         .select("recovery_score, hrv_avg, rhr_bpm, sleep_dim_score, stress_score, snapshot_date, report_text")
@@ -77,10 +79,16 @@ export default async function DashboardPage() {
         .eq("user_id", user.id)
         .gte("snapshot_date", thirtyDaysAgo)
         .order("snapshot_date", { ascending: false }),
+      supabase
+        .from("user_achievements")
+        .select("achievement_id, unlocked_at")
+        .eq("user_id", user.id)
+        .order("unlocked_at", { ascending: false }),
     ]);
 
     snapshot = snapshotResult.data ?? null;
     weeklyReport = weeklyResult.data ?? null;
+    achievements = achievementsResult.data ?? [];
 
     // Calcula streak de dias consecutivos
     const dates = (streakResult.data ?? []).map((d: { snapshot_date: string }) => d.snapshot_date);
@@ -148,13 +156,16 @@ export default async function DashboardPage() {
           <p className="text-slate-400 text-sm">
             {new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}
           </p>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-slate-800 text-2xl font-bold">Hoje</h1>
             {streak > 0 && (
               <span className="text-xs font-semibold text-sky-500 bg-sky-50 px-2 py-0.5 rounded-full">
                 dia {streak}
               </span>
             )}
+            <span className="text-[9px] font-black uppercase tracking-[0.15em] text-rose-500 bg-rose-50 border border-rose-100 px-2 py-0.5 rounded-full">
+              ☀️ Crueldade Matinal
+            </span>
           </div>
         </div>
         <div className="flex flex-col items-end gap-1.5">
@@ -225,6 +236,9 @@ export default async function DashboardPage() {
           <div className="flex justify-end">
             <SyncButton />
           </div>
+
+          {/* Conquistas */}
+          <AchievementsRow unlocked={achievements} />
 
           {/* Resumo semanal */}
           {weeklyReport && (

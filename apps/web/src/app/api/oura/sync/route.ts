@@ -5,6 +5,7 @@ import { AUTH_ACCESS_COOKIE } from "@/lib/auth/cookies";
 import { getUserFromAccessToken } from "@/lib/auth/session";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { generateDailyReport } from "@/lib/report/generate";
+import { checkAndUnlockAchievements } from "@/lib/achievements/check";
 
 const OURA_BASE = "https://api.ouraring.com/v2/usercollection";
 
@@ -171,6 +172,9 @@ async function handleCronSync() {
       ).length;
 
       const isPattern = consecutiveBad >= 3;
+
+      // Verifica conquistas
+      await checkAndUnlockAchievements(i.user_id, service);
 
       await fetch(`${appUrl}/api/push/send`, {
         method: "POST",
