@@ -1,11 +1,11 @@
 {
-  "name": "Defendi Biometric Dashboard",
-  "short_name": "Defendi",
-  "description": "Dashboard profissional com tema biometrico dark.",
+  "name": "Health Monitor",
+  "short_name": "Health",
+  "description": "Seu monitor pessoal de saúde e recuperação.",
   "start_url": "/dashboard",
   "display": "standalone",
-  "background_color": "#05080a",
-  "theme_color": "#16f2b3",
+  "background_color": "#f0f9ff",
+  "theme_color": "#0ea5e9",
   "icons": [
     {
       "src": "/icons/icon.svg",

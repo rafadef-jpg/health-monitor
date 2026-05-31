@@ -4,15 +4,15 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "Defendi Dashboard",
-    template: "%s | Defendi Dashboard",
+    default: "Health Monitor",
+    template: "%s | Health Monitor",
   },
-  description: "Fundacao profissional para dashboard biometrico.",
+  description: "Seu monitor pessoal de saúde e recuperação.",
   manifest: "/manifest.json",
 };
 
 export const viewport: Viewport = {
-  themeColor: "#16f2b3",
+  themeColor: "#0ea5e9",
   width: "device-width",
   initialScale: 1,
 };
