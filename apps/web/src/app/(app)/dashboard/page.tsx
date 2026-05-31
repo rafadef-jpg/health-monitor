@@ -162,6 +162,10 @@ export default async function DashboardPage() {
             <Settings className="size-3" />
             Oura
           </Link>
+          <Link href="/settings/compartilhar" className="text-slate-400 hover:text-slate-600 flex items-center gap-1 text-xs transition">
+            <Settings className="size-3" />
+            Compartilhar
+          </Link>
           <PushButton vapidPublicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ""} />
         </div>
       </section>

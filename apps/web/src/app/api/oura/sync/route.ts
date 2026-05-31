@@ -153,11 +153,26 @@ async function handleCronSync() {
   const reportsOk = reportResults.filter((r) => r.status === "fulfilled").length;
   console.log(`[oura/sync] relatórios gerados: ${reportsOk}/${integrations.length}`);
 
-  // Envia push notification para cada usuário
+  // Envia push notification + verifica padrão de dias ruins
   const appUrl = process.env.APP_URL ?? "";
   await Promise.allSettled(
-    integrations.map((i: { user_id: string }) =>
-      fetch(`${appUrl}/api/push/send`, {
+    integrations.map(async (i: { user_id: string }) => {
+      // Verifica padrão: 3+ dias consecutivos com recovery < 65
+      const threeDaysAgo = new Date(Date.now() - 3 * 86400000).toISOString().slice(0, 10);
+      const { data: recentDays } = await service
+        .from("daily_physiology_snapshot")
+        .select("recovery_score, snapshot_date")
+        .eq("user_id", i.user_id)
+        .gte("snapshot_date", threeDaysAgo)
+        .order("snapshot_date", { ascending: false });
+
+      const consecutiveBad = (recentDays ?? []).filter(
+        (d: { recovery_score: number | null }) => d.recovery_score != null && d.recovery_score < 65
+      ).length;
+
+      const isPattern = consecutiveBad >= 3;
+
+      await fetch(`${appUrl}/api/push/send`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -165,12 +180,14 @@ async function handleCronSync() {
         },
         body: JSON.stringify({
           user_id: i.user_id,
-          title: "Relatório pronto",
-          body: "Seu relatório de hoje está no app.",
+          title: isPattern ? "⚠️ Padrão detectado" : "Relatório pronto",
+          body: isPattern
+            ? "Você está mal há 3 dias seguidos. Isso não é coincidência. Abre o app."
+            : "Seu relatório de hoje está no app.",
           url: "/dashboard",
         }),
-      })
-    )
+      });
+    })
   );
 
   return NextResponse.json({ synced: ok, total: integrations.length, reports: reportsOk });
