@@ -11,10 +11,16 @@ type State =
   | { status: "error"; text: string; message: string };
 
 function parseReport(text: string): { hook: string; body: string } {
-  const match = text.match(/^GANCHO:\s*(.+?)\n---\n?([\s\S]*)$/);
-  if (match) return { hook: match[1].trim(), body: match[2].trim() };
-  // fallback: usa primeira linha como gancho
-  const lines = text.split("\n");
+  // Tenta formato GANCHO: ... \n---\n
+  const match = text.match(/GANCHO:\s*(.+?)(?:\n---|\n\n)/s);
+  if (match) {
+    const hook = match[1].trim();
+    const afterHook = text.slice(text.indexOf(match[0]) + match[0].length).trim();
+    const body = afterHook.replace(/^---\s*/, "").trim();
+    return { hook, body };
+  }
+  // fallback: primeira linha não vazia como gancho
+  const lines = text.split("\n").filter((l) => l.trim());
   return { hook: lines[0].replace(/^\*+|\*+$/g, "").trim(), body: lines.slice(1).join("\n").trim() };
 }
 

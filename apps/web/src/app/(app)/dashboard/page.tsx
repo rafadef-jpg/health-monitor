@@ -99,11 +99,39 @@ export default async function DashboardPage() {
     ? calcRecovery({ hrv_ms: snapshot.hrv_avg, rhr_bpm: snapshot.rhr_bpm, sleep_score: snapshot.sleep_dim_score })
     : null;
 
+  function scoreToLabel(score: number | null, thresholds: [number, string][]): string | null {
+    if (score == null) return null;
+    for (const [min, label] of thresholds) if (score >= min) return label;
+    return thresholds[thresholds.length - 1][1];
+  }
+
   const metrics = [
-    { title: "HRV", value: snapshot?.hrv_avg != null ? `${snapshot.hrv_avg}` : null, unit: "ms", icon: Activity },
-    { title: "Recovery", value: snapshot?.recovery_score != null ? `${snapshot.recovery_score}` : null, unit: "/100", icon: Zap },
-    { title: "Sono", value: snapshot?.sleep_dim_score != null ? `${snapshot.sleep_dim_score}` : null, unit: "/100", icon: Moon },
-    { title: "Stress", value: snapshot?.stress_score != null ? `${snapshot.stress_score}` : null, unit: "min", icon: Wind },
+    {
+      title: "Coração",
+      value: scoreToLabel(snapshot?.hrv_avg ?? null, [[70,"Ótimo"],[55,"Normal"],[40,"Abaixo"],[0,"Baixo"]]),
+      sub: snapshot?.hrv_avg != null ? `${snapshot.hrv_avg} ms` : null,
+      icon: Activity,
+    },
+    {
+      title: "Sono",
+      value: scoreToLabel(snapshot?.sleep_dim_score ?? null, [[85,"Excelente"],[70,"Bom"],[55,"Regular"],[0,"Ruim"]]),
+      sub: null,
+      icon: Moon,
+    },
+    {
+      title: "Recuperação",
+      value: scoreToLabel(snapshot?.recovery_score ?? null, [[80,"Ótima"],[65,"Boa"],[50,"Regular"],[0,"Baixa"]]),
+      sub: null,
+      icon: Zap,
+    },
+    {
+      title: "Estresse",
+      value: snapshot?.stress_score != null
+        ? snapshot.stress_score === 0 ? "Tranquilo" : snapshot.stress_score < 30 ? "Leve" : snapshot.stress_score < 60 ? "Moderado" : "Alto"
+        : null,
+      sub: null,
+      icon: Wind,
+    },
   ];
 
   return (
@@ -146,22 +174,15 @@ export default async function DashboardPage() {
           {engineResult && (
             <section className="biometric-panel rounded-2xl p-5 flex items-center justify-between gap-4">
               <div>
-                <p className="text-slate-400 text-xs font-medium uppercase tracking-wider mb-1">Recovery Score</p>
+                <p className="text-slate-400 text-xs font-medium uppercase tracking-wider mb-1">Como você está</p>
                 <p className={`text-5xl font-black ${SEMAPHORE_COLOR[engineResult.semaphore]}`}>
                   {engineResult.score}
                 </p>
               </div>
-              <div className="text-right space-y-1">
-                <span className={`inline-flex items-center gap-1.5 text-sm font-semibold ${SEMAPHORE_COLOR[engineResult.semaphore]}`}>
-                  <span className={`size-2 rounded-full ${SEMAPHORE_DOT[engineResult.semaphore]}`} />
-                  {SEMAPHORE_LABEL[engineResult.semaphore]}
-                </span>
-                <div className="text-slate-400 text-xs space-y-0.5 mt-1">
-                  {engineResult.components.hrv != null && <p>HRV {Math.round(engineResult.components.hrv)}/100</p>}
-                  {engineResult.components.rhr != null && <p>FC {Math.round(engineResult.components.rhr)}/100</p>}
-                  {engineResult.components.sleep != null && <p>Sono {Math.round(engineResult.components.sleep)}/100</p>}
-                </div>
-              </div>
+              <span className={`inline-flex items-center gap-1.5 text-base font-semibold ${SEMAPHORE_COLOR[engineResult.semaphore]}`}>
+                <span className={`size-2.5 rounded-full ${SEMAPHORE_DOT[engineResult.semaphore]}`} />
+                {SEMAPHORE_LABEL[engineResult.semaphore]}
+              </span>
             </section>
           )}
 
@@ -176,9 +197,10 @@ export default async function DashboardPage() {
                   <p className="text-slate-400 text-xs font-medium">{metric.title}</p>
                 </div>
                 {metric.value ? (
-                  <p className="text-slate-800 text-2xl font-bold">
-                    {metric.value}<span className="text-slate-400 text-sm font-normal ml-0.5">{metric.unit}</span>
-                  </p>
+                  <div>
+                    <p className="text-slate-800 text-xl font-bold">{metric.value}</p>
+                    {metric.sub && <p className="text-slate-400 text-xs mt-0.5">{metric.sub}</p>}
+                  </div>
                 ) : (
                   <p className="text-slate-300 text-lg">—</p>
                 )}
