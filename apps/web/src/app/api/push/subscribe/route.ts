@@ -3,12 +3,21 @@ import { cookies } from "next/headers";
 import { AUTH_ACCESS_COOKIE } from "@/lib/auth/cookies";
 import { getUserFromAccessToken } from "@/lib/auth/session";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { rateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get(AUTH_ACCESS_COOKIE)?.value;
   const user = await getUserFromAccessToken(accessToken);
   if (!user) return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
+
+  const rl = rateLimit(`push-subscribe:${user.id}`, 10, 60_000);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Muitas requisições. Tente novamente em instantes." },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSeconds) } }
+    );
+  }
 
   const { endpoint, keys } = await request.json();
   if (!endpoint || !keys?.p256dh || !keys?.auth) {
