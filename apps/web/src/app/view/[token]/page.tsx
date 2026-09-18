@@ -1,7 +1,16 @@
 import { createClient } from "@supabase/supabase-js";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { Activity, Moon, Zap, Wind } from "lucide-react";
 import { calcRecovery } from "@repo/physiology";
+import { rateLimit } from "@/lib/rate-limit";
+
+// Defesa em profundidade: a página já renderiza dinamicamente (usa cookies/
+// dados voláteis), mas este pin explícito evita que uma futura refatoração
+// a torne estática e quebre a revogação de tokens via cache de rota.
+// Verificado empiricamente: render por request, revogação imediata e
+// `Cache-Control: private, no-cache, no-store` em todas as respostas.
+export const dynamic = "force-dynamic";
 
 function scoreToLabel(score: number | null, thresholds: [number, string, string][]): { label: string; color: string } | null {
   if (score == null) return null;
@@ -12,6 +21,13 @@ function scoreToLabel(score: number | null, thresholds: [number, string, string]
 
 export default async function ViewPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
+
+  // F-05: limita tentativas de lookup por IP (proteção contra enumeração
+  // de tokens). Em excesso, respondemos 404 para não vazar informação.
+  const headerStore = await headers();
+  const ip = headerStore.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  const rl = rateLimit(`view:${ip}`, 60, 60_000);
+  if (!rl.allowed) return notFound();
 
   const service = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
