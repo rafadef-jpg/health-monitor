@@ -1,17 +1,40 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { AUTH_ACCESS_COOKIE } from "@/lib/auth/cookies";
+import { getUserFromAccessToken } from "@/lib/auth/session";
+import { validateImageUpload } from "@/lib/upload/image-validation";
+import { rateLimit } from "@/lib/rate-limit";
 
 const client = new Anthropic();
 
 export async function POST(req: Request) {
+  const cookieStore = await cookies();
+  const accessToken = cookieStore.get(AUTH_ACCESS_COOKIE)?.value;
+  const user = await getUserFromAccessToken(accessToken);
+  if (!user) {
+    return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
+  }
+
+  const rl = rateLimit(`ai:${user.id}`, 10, 60_000);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Muitas requisições. Tente novamente em instantes." },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSeconds) } }
+    );
+  }
+
   try {
     const form = await req.formData();
     const image = form.get("image") as File | null;
-    if (!image) return NextResponse.json({ error: "Imagem nao enviada." }, { status: 400 });
 
-    const buffer = await image.arrayBuffer();
-    const base64 = Buffer.from(buffer).toString("base64");
-    const mediaType = (image.type || "image/jpeg") as "image/jpeg" | "image/png" | "image/webp";
+    const validation = await validateImageUpload(image);
+    if (!validation.ok) {
+      return NextResponse.json({ error: validation.error }, { status: validation.status });
+    }
+
+    const base64 = validation.bytes.toString("base64");
+    const mediaType = validation.mediaType;
 
     const response = await client.messages.create({
       model: "claude-haiku-4-5-20251001",

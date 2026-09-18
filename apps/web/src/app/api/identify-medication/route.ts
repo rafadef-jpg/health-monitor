@@ -3,6 +3,8 @@ import { cookies } from "next/headers";
 import Anthropic from "@anthropic-ai/sdk";
 import { AUTH_ACCESS_COOKIE } from "@/lib/auth/cookies";
 import { getUserFromAccessToken } from "@/lib/auth/session";
+import { validateImageUpload } from "@/lib/upload/image-validation";
+import { rateLimit } from "@/lib/rate-limit";
 
 const client = new Anthropic();
 
@@ -15,16 +17,24 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
   }
 
+  const rl = rateLimit(`ai:${user.id}`, 10, 60_000);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Muitas requisições. Tente novamente em instantes." },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSeconds) } }
+    );
+  }
+
   const formData = await request.formData();
   const file = formData.get("image") as File | null;
 
-  if (!file) {
-    return NextResponse.json({ error: "Nenhuma imagem enviada." }, { status: 400 });
+  const validation = await validateImageUpload(file);
+  if (!validation.ok) {
+    return NextResponse.json({ error: validation.error }, { status: validation.status });
   }
 
-  const bytes = await file.arrayBuffer();
-  const base64 = Buffer.from(bytes).toString("base64");
-  const mediaType = (file.type as "image/jpeg" | "image/png" | "image/webp" | "image/gif") || "image/jpeg";
+  const base64 = validation.bytes.toString("base64");
+  const mediaType = validation.mediaType;
 
   let message;
   try {
