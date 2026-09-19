@@ -5,6 +5,7 @@ import { AUTH_ACCESS_COOKIE } from "@/lib/auth/cookies";
 import { getUserFromAccessToken } from "@/lib/auth/session";
 import { validateImageUpload } from "@/lib/upload/image-validation";
 import { rateLimit } from "@/lib/rate-limit";
+import { logServerError } from "@/lib/api/error-handler";
 
 const client = new Anthropic();
 
@@ -76,7 +77,7 @@ Regras:
     const exercises = JSON.parse(match[0]);
     return NextResponse.json({ exercises });
   } catch (err) {
-    console.error("identify-workout error:", err);
+    logServerError("identify-workout", err);
     return NextResponse.json({ error: "Erro ao processar imagem." }, { status: 500 });
   }
 }

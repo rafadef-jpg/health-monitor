@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import webpush from "web-push";
+import { isCronAuthorized } from "@/lib/auth/cron-secret";
 
 webpush.setVapidDetails(
   process.env.VAPID_CONTACT_EMAIL ?? "mailto:admin@healthmonitor.app",
@@ -10,8 +11,10 @@ webpush.setVapidDetails(
 
 export async function POST(request: Request) {
   const authHeader = request.headers.get("authorization");
-  const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+  if (!process.env.CRON_SECRET) {
+    return NextResponse.json({ error: "Não configurado." }, { status: 500 });
+  }
+  if (!isCronAuthorized(authHeader)) {
     return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
   }
 

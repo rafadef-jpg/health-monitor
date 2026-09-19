@@ -5,6 +5,8 @@ import Anthropic from "@anthropic-ai/sdk";
 import { AUTH_ACCESS_COOKIE } from "@/lib/auth/cookies";
 import { getUserFromAccessToken } from "@/lib/auth/session";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { isCronAuthorized } from "@/lib/auth/cron-secret";
+import { logServerError, serverErrorResponse } from "@/lib/api/error-handler";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnySupabase = SupabaseClient<any, any, any>;
@@ -147,9 +149,10 @@ Não use emojis. Seja honesto mesmo que a semana foi ruim.`,
 export async function POST(request: Request) {
   // Cron path
   const authHeader = request.headers.get("authorization");
-  const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret) return NextResponse.json({ error: "Não configurado." }, { status: 500 });
-  if (authHeader === `Bearer ${cronSecret}`) {
+  if (!process.env.CRON_SECRET) {
+    return NextResponse.json({ error: "Não configurado." }, { status: 500 });
+  }
+  if (isCronAuthorized(authHeader)) {
     return handleCronWeekly();
   }
 
@@ -164,7 +167,7 @@ export async function POST(request: Request) {
     await generateWeeklyForUser(user.id, supabase as AnySupabase);
     return NextResponse.json({ ok: true });
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "Erro ao gerar resumo.";
-    return NextResponse.json({ error: msg }, { status: 502 });
+    logServerError("oura/weekly-report", err);
+    return serverErrorResponse("Erro ao gerar resumo. Tente novamente em instantes.", 502);
   }
 }

@@ -4,6 +4,7 @@ import { AUTH_ACCESS_COOKIE } from "@/lib/auth/cookies";
 import { getUserFromAccessToken } from "@/lib/auth/session";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { generateDailyReport } from "@/lib/report/generate";
+import { logServerError, serverErrorResponse } from "@/lib/api/error-handler";
 
 export async function POST() {
   const cookieStore = await cookies();
@@ -37,7 +38,7 @@ export async function POST() {
     const report = await generateDailyReport(user.id, snapshot, supabase);
     return NextResponse.json({ report, snapshot });
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "Erro ao chamar a IA.";
-    return NextResponse.json({ error: msg }, { status: 502 });
+    logServerError("oura/report", err);
+    return serverErrorResponse("Erro ao gerar relatório. Tente novamente em instantes.", 502);
   }
 }

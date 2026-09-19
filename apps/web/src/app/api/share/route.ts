@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { AUTH_ACCESS_COOKIE } from "@/lib/auth/cookies";
 import { getUserFromAccessToken } from "@/lib/auth/session";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { logServerError, serverErrorResponse } from "@/lib/api/error-handler";
 
 export async function GET() {
   const cookieStore = await cookies();
@@ -34,7 +35,10 @@ export async function POST(request: Request) {
     .select("token")
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    logServerError("share/create", error);
+    return serverErrorResponse("Erro ao criar link de compartilhamento.");
+  }
   return NextResponse.json({ token: data.token });
 }
 

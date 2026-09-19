@@ -6,6 +6,8 @@ import { getUserFromAccessToken } from "@/lib/auth/session";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { generateDailyReport } from "@/lib/report/generate";
 import { checkAndUnlockAchievements } from "@/lib/achievements/check";
+import { isCronAuthorized } from "@/lib/auth/cron-secret";
+import { logServerError } from "@/lib/api/error-handler";
 
 const OURA_BASE = "https://api.ouraring.com/v2/usercollection";
 
@@ -199,13 +201,12 @@ async function handleCronSync() {
 
 export async function POST(request: Request) {
   const authHeader = request.headers.get("authorization");
-  const cronSecret = process.env.CRON_SECRET;
 
-  // — Cron path — rejeita se secret não está configurado ou não bate
-  if (!cronSecret) {
+  // — Cron path — comparação constant-time via helper compartilhado (F-07)
+  if (!process.env.CRON_SECRET) {
     return NextResponse.json({ error: "Não configurado." }, { status: 500 });
   }
-  if (authHeader === `Bearer ${cronSecret}`) {
+  if (isCronAuthorized(authHeader)) {
     return handleCronSync();
   }
 
@@ -235,6 +236,10 @@ export async function POST(request: Request) {
   try {
     snapshot = await syncUser(user.id, integration.access_token, supabase);
   } catch (err) {
+    // Mensagem interna (sem token — a mensagem montada em fetchOura contém
+    // apenas endpoint + status HTTP) vai apenas para o log de sync, nunca
+    // direto ao cliente (F-08).
+    logServerError("oura/sync", err);
     const message = err instanceof Error ? err.message : "Erro ao buscar dados da Oura.";
     await supabase.from("sync_logs").insert({
       user_id: user.id,
@@ -243,7 +248,10 @@ export async function POST(request: Request) {
       message,
       synced_at: new Date().toISOString(),
     });
-    return NextResponse.json({ error: message }, { status: 502 });
+    return NextResponse.json(
+      { error: "Erro ao sincronizar dados da Oura. Tente novamente em instantes." },
+      { status: 502 }
+    );
   }
 
   return NextResponse.json({ snapshot });

@@ -5,6 +5,7 @@ import { AUTH_ACCESS_COOKIE } from "@/lib/auth/cookies";
 import { getUserFromAccessToken } from "@/lib/auth/session";
 import { validateImageUpload } from "@/lib/upload/image-validation";
 import { rateLimit } from "@/lib/rate-limit";
+import { logServerError, serverErrorResponse } from "@/lib/api/error-handler";
 
 const client = new Anthropic();
 
@@ -60,8 +61,8 @@ Seja direto — sem explicações, sem frases extras.`,
       ],
     });
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "Erro ao analisar imagem.";
-    return NextResponse.json({ error: msg }, { status: 502 });
+    logServerError("identify-medication", err);
+    return serverErrorResponse("Erro ao analisar imagem. Tente novamente.", 502);
   }
 
   const result = message.content[0].type === "text" ? message.content[0].text : "";

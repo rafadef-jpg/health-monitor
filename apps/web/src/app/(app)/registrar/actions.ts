@@ -80,7 +80,10 @@ export async function saveWorkoutAction(
     updated_at: new Date().toISOString(),
   }, { onConflict: "user_id,session_date" });
 
-  if (error) return { error: error.message };
+  if (error) {
+    console.error("[registrar] save error:", error.code, error.message);
+    return { error: "Erro ao salvar treino. Tente novamente." };
+  }
   revalidatePath("/registrar");
   return { success: "Treino salvo!" };
 }
