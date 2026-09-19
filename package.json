@@ -6,19 +6,15 @@
   "workspaces": [
     "apps/web",
     "packages/shared",
-    "packages/db",
     "packages/physiology"
   ],
   "scripts": {
     "dev": "npm run dev -w @health-monitor/web",
     "build": "npm run build -w @health-monitor/web",
     "lint": "npm run lint -w @health-monitor/web",
-    "typecheck": "npm run typecheck -w @health-monitor/web && npm run typecheck -w @health-monitor/shared && npm run typecheck -w @health-monitor/db",
+    "typecheck": "npm run typecheck -w @health-monitor/web && npm run typecheck -w @health-monitor/shared",
     "format": "prettier --write .",
-    "format:check": "prettier --check .",
-    "db:generate": "npm run db:generate -w @health-monitor/db",
-    "db:migrate": "npm run db:migrate -w @health-monitor/db",
-    "db:studio": "npm run db:studio -w @health-monitor/db"
+    "format:check": "prettier --check ."
   },
   "devDependencies": {
     "prettier": "^3.3.3",
