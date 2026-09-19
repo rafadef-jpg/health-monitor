@@ -5,6 +5,8 @@ Aplicativo pessoal de monitoramento de saúde e treino, publicado como
 Router) + TypeScript + TailwindCSS + shadcn/ui + PWA + Supabase (Auth,
 PostgREST com RLS) + Anthropic (visão) + Web Push.
 
+![Telas do app com dados de demonstração](docs/screenshots.webp)
+
 ## Aviso importante
 
 Este repositório é o aplicativo pessoal do autor, publicado para transparência
