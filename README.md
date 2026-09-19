@@ -80,3 +80,12 @@ bugs não sensíveis são bem-vindas.
 PolyForm Noncommercial 1.0.0. Uso não-comercial (pessoal, educacional,
 pesquisa, órgãos públicos) livre; qualquer uso comercial exige licença
 separada. Texto completo em `LICENSE`.
+
+## Aviso de saúde
+
+Este projeto é uma ferramenta pessoal de acompanhamento de bem-estar e
+**não é um dispositivo médico**, não oferece diagnóstico e não substitui
+avaliação, orientação ou tratamento por profissional de saúde qualificado.
+Qualquer decisão sobre treinos, medicação ou saúde deve ser discutida com
+um médico. O uso do software e das análises geradas por IA é por conta e
+risco do usuário.

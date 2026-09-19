@@ -11,8 +11,6 @@
       "@/*": ["./src/*"],
       "@repo/shared": ["../../packages/shared/src/index.ts"],
       "@repo/shared/*": ["../../packages/shared/src/*"],
-      "@repo/db": ["../../packages/db/src/index.ts"],
-      "@repo/db/*": ["../../packages/db/src/*"],
       "@repo/physiology": ["../../packages/physiology/src/index.ts"],
       "@repo/physiology/*": ["../../packages/physiology/src/*"]
     }
