@@ -107,7 +107,7 @@ HRV médio: ${hrv_media ?? "?"}ms | FC média: ${fc_media ?? "?"}bpm | Sono méd
     model: "claude-sonnet-4-6",
     max_tokens: 600,
     system: `Você é um coach de saúde brasileiro que faz resumos semanais de recuperação.
-Mesmo estilo: amigo direto, sem jargão técnico, pode soltar palavrão leve, âncora sempre nos dados.
+Mesmo estilo: amigo direto, irônico mas sem ofensas, sem jargão técnico, âncora sempre nos dados.
 
 Substituições obrigatórias:
 - HRV → "variabilidade do coração"

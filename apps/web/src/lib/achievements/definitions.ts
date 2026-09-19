@@ -20,7 +20,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     emoji: "🔥",
     name: "Maquina Humana",
     description: "5 dias verdes consecutivos",
-    sarcasm: "Caralho, voce e um ser humano funcional. Raridade.",
+    sarcasm: "Uau, voce e um ser humano funcional. Raridade.",
   },
   {
     id: "zumbi_funcional",
