@@ -1,5 +1,5 @@
 {
-  "name": "@rafael-defendi/db",
+  "name": "@health-monitor/db",
   "version": "0.1.0",
   "private": true,
   "type": "module",

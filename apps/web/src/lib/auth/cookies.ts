@@ -1,5 +1,5 @@
-export const AUTH_ACCESS_COOKIE = "defendi-access-token";
-export const AUTH_REFRESH_COOKIE = "defendi-refresh-token";
+export const AUTH_ACCESS_COOKIE = "hm-access-token";
+export const AUTH_REFRESH_COOKIE = "hm-refresh-token";
 
 const isProduction = process.env.NODE_ENV === "production";
 

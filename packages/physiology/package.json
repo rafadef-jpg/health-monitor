@@ -1,5 +1,5 @@
 {
-  "name": "@rafael-defendi/physiology",
+  "name": "@health-monitor/physiology",
   "version": "0.1.0",
   "private": true,
   "type": "module",

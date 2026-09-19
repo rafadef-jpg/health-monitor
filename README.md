@@ -1,4 +1,4 @@
-# Rafael Defendi Platform
+# Health Monitor
 
 Fundacao profissional em Next.js 15 com TypeScript, App Router, TailwindCSS, shadcn/ui, PWA, Supabase, Prisma, Zod e Recharts.
 

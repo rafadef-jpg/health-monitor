@@ -1,5 +1,5 @@
 {
-  "name": "rafael-defendi-platform",
+  "name": "health-monitor",
   "version": "0.1.0",
   "private": true,
   "packageManager": "npm@11.13.0",
@@ -10,19 +10,20 @@
     "packages/physiology"
   ],
   "scripts": {
-    "dev": "npm run dev -w @rafael-defendi/web",
-    "build": "npm run build -w @rafael-defendi/web",
-    "lint": "npm run lint -w @rafael-defendi/web",
-    "typecheck": "npm run typecheck -w @rafael-defendi/web && npm run typecheck -w @rafael-defendi/shared && npm run typecheck -w @rafael-defendi/db",
+    "dev": "npm run dev -w @health-monitor/web",
+    "build": "npm run build -w @health-monitor/web",
+    "lint": "npm run lint -w @health-monitor/web",
+    "typecheck": "npm run typecheck -w @health-monitor/web && npm run typecheck -w @health-monitor/shared && npm run typecheck -w @health-monitor/db",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "db:generate": "npm run db:generate -w @rafael-defendi/db",
-    "db:migrate": "npm run db:migrate -w @rafael-defendi/db",
-    "db:studio": "npm run db:studio -w @rafael-defendi/db"
+    "db:generate": "npm run db:generate -w @health-monitor/db",
+    "db:migrate": "npm run db:migrate -w @health-monitor/db",
+    "db:studio": "npm run db:studio -w @health-monitor/db"
   },
   "devDependencies": {
     "prettier": "^3.3.3",
     "prettier-plugin-tailwindcss": "^0.6.8",
+    "supabase": "^2.117.0",
     "typescript": "^5.6.3"
   }
 }

@@ -24,7 +24,7 @@ export function SignupForm() {
           id="name"
           name="name"
           type="text"
-          placeholder="Rafael Defendi"
+          placeholder="Seu nome"
           autoComplete="name"
           required
         />
