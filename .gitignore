@@ -17,3 +17,4 @@ apps/web/public/sw.js
 apps/web/public/workbox-*.js
 supabase/.temp
 supabase/schema_baseline.sql
+.agent/
